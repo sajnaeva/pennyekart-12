@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { Star, ArrowLeft, ChevronDown, ChevronUp, Play, Clock, Building2, MapPin, Phone, Mail, Share2 } from "lucide-react";
+import { Star, ArrowLeft, ChevronDown, ChevronUp, Play, Clock, Building2, MapPin, Phone, Mail, Share2, Coins } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import ProductRow from "@/components/ProductRow";
 import { useCart } from "@/hooks/useCart";
@@ -33,6 +33,7 @@ interface ProductData {
   category: string | null;
   stock: number;
   coming_soon?: boolean;
+  wallet_points?: number;
 }
 
 const getYoutubeEmbedUrl = (url: string, autoplay = false) => {
@@ -219,7 +220,7 @@ const ProductDetail = () => {
       let productData: ProductData | null = null;
       const { data } = await supabase
         .from("products")
-        .select("id, name, price, mrp, discount_rate, description, image_url, image_url_2, image_url_3, video_url, category, stock, coming_soon")
+        .select("id, name, price, mrp, discount_rate, description, image_url, image_url_2, image_url_3, video_url, category, stock, coming_soon, wallet_points")
         .eq("id", id)
         .eq("is_active", true)
         .maybeSingle();
@@ -232,7 +233,7 @@ const ProductDetail = () => {
         // Fallback: check seller_products table
         const { data: sellerData } = await supabase
           .from("seller_products")
-          .select("id, name, price, mrp, discount_rate, description, image_url, image_url_2, image_url_3, video_url, category, stock, seller_id, coming_soon")
+          .select("id, name, price, mrp, discount_rate, description, image_url, image_url_2, image_url_3, video_url, category, stock, seller_id, coming_soon, wallet_points")
           .eq("id", id)
           .eq("is_active", true)
           .eq("is_approved", true)
@@ -399,6 +400,13 @@ const ProductDetail = () => {
                 </>
               )}
             </div>
+
+            {product.wallet_points && product.wallet_points > 0 ? (
+              <div className="mt-2 flex items-center gap-1.5 rounded-md bg-amber-50 dark:bg-amber-950/30 px-3 py-1.5 w-fit border border-amber-200 dark:border-amber-800">
+                <Coins className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+                <span className="text-sm font-semibold text-amber-700 dark:text-amber-300">Earn {product.wallet_points} wallet points on purchase</span>
+              </div>
+            ) : null}
 
             {/* Variant Selector */}
             {variants.length > 0 && (

@@ -1,4 +1,4 @@
-import { Star, TrendingUp, Sparkles, Wallet, Megaphone, Clock } from "lucide-react";
+import { Star, TrendingUp, Sparkles, Wallet, Megaphone, Clock, Coins } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 export interface Product {
@@ -9,6 +9,7 @@ export interface Product {
   rating: number;
   image: string;
   coming_soon?: boolean;
+  wallet_points?: number;
 }
 
 interface ProductRowProps {
@@ -66,6 +67,11 @@ const ProductRow = ({ title, products, linkPrefix = "/product/", sectionKey }: P
                 ) : p.originalPrice ? (
                   <span className="absolute left-1.5 top-1.5 rounded-md bg-destructive px-1.5 py-0.5 text-[10px] font-bold text-destructive-foreground">
                     {Math.round(((p.originalPrice - p.price) / p.originalPrice) * 100)}% OFF
+                  </span>
+                ) : null}
+                {!p.coming_soon && p.wallet_points && p.wallet_points > 0 ? (
+                  <span className="absolute right-1.5 top-1.5 flex items-center gap-0.5 rounded-md bg-amber-500 px-1.5 py-0.5 text-[10px] font-bold text-white">
+                    <Coins className="h-3 w-3" /> Earn {p.wallet_points} pts
                   </span>
                 ) : null}
               </div>

@@ -11,6 +11,7 @@ export interface SectionProduct {
   category: string | null;
   section: string | null;
   coming_soon?: boolean;
+  wallet_points?: number;
 }
 
 const sectionLabels: Record<string, string> = {
@@ -25,7 +26,7 @@ const fetchSectionProducts = async (): Promise<SectionProduct[]> => {
   // First try products with sections
   const { data: sectionData } = await supabase
     .from("products")
-    .select("id, name, price, mrp, discount_rate, image_url, category, section, coming_soon")
+    .select("id, name, price, mrp, discount_rate, image_url, category, section, coming_soon, wallet_points")
     .eq("is_active", true)
     .not("section", "is", null)
     .neq("section", "")
@@ -38,7 +39,7 @@ const fetchSectionProducts = async (): Promise<SectionProduct[]> => {
   // Fallback: fetch all active products (no section filter)
   const { data: allData } = await supabase
     .from("products")
-    .select("id, name, price, mrp, discount_rate, image_url, category, section, coming_soon")
+    .select("id, name, price, mrp, discount_rate, image_url, category, section, coming_soon, wallet_points")
     .eq("is_active", true)
     .limit(50);
   return (allData as SectionProduct[]) ?? [];

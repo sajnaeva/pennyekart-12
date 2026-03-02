@@ -60,7 +60,7 @@ const sectionOptions = [
   { value: "sponsors", label: "Sponsors" },
 ];
 
-const emptyProduct = { name: "", description: "", price: 0, category: "", stock: 0, is_active: true, image_url: "", image_url_2: "", image_url_3: "", section: "", purchase_rate: 0, mrp: 0, discount_rate: 0, video_url: "", coming_soon: false };
+const emptyProduct = { name: "", description: "", price: 0, category: "", stock: 0, is_active: true, image_url: "", image_url_2: "", image_url_3: "", section: "", purchase_rate: 0, mrp: 0, discount_rate: 0, video_url: "", coming_soon: false, wallet_points: 0 };
 
 const ProductsPage = () => {
   const [products, setProducts] = useState<Product[]>([]);
@@ -71,7 +71,7 @@ const ProductsPage = () => {
   const [open, setOpen] = useState(false);
   const [sellerEditOpen, setSellerEditOpen] = useState(false);
   const [sellerEditId, setSellerEditId] = useState<string | null>(null);
-  const [sellerForm, setSellerForm] = useState({ name: "", description: "", price: 0, mrp: 0, purchase_rate: 0, discount_rate: 0, stock: 0, category: "", is_active: true, is_approved: false, is_featured: false, coming_soon: false, image_url: "", image_url_2: "", image_url_3: "", video_url: "" });
+  const [sellerForm, setSellerForm] = useState({ name: "", description: "", price: 0, mrp: 0, purchase_rate: 0, discount_rate: 0, stock: 0, category: "", is_active: true, is_approved: false, is_featured: false, coming_soon: false, image_url: "", image_url_2: "", image_url_3: "", video_url: "", wallet_points: 0 });
   const [ownCategoryFilter, setOwnCategoryFilter] = useState("");
   const [sellerCategoryFilter, setSellerCategoryFilter] = useState("");
   const { hasPermission } = usePermissions();
@@ -157,6 +157,7 @@ const ProductsPage = () => {
       is_featured: p.is_featured, coming_soon: p.coming_soon,
       image_url: p.image_url ?? "", image_url_2: p.image_url_2 ?? "",
       image_url_3: p.image_url_3 ?? "", video_url: p.video_url ?? "",
+      wallet_points: (p as any).wallet_points ?? 0,
     });
     setSellerEditId(p.id);
     setSellerEditOpen(true);
@@ -172,7 +173,7 @@ const ProductsPage = () => {
       is_approved: sellerForm.is_approved, is_featured: sellerForm.is_featured,
       coming_soon: sellerForm.coming_soon, image_url: sellerForm.image_url || null,
       image_url_2: sellerForm.image_url_2 || null, image_url_3: sellerForm.image_url_3 || null,
-      video_url: sellerForm.video_url || null,
+      video_url: sellerForm.video_url || null, wallet_points: sellerForm.wallet_points,
     }).eq("id", sellerEditId);
     if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); return; }
     toast({ title: "Seller product updated" });
@@ -180,7 +181,7 @@ const ProductsPage = () => {
   };
 
   const openEdit = (p: Product) => {
-    setForm({ name: p.name, description: p.description ?? "", price: p.price, category: p.category ?? "", stock: p.stock, is_active: p.is_active, image_url: p.image_url ?? "", image_url_2: p.image_url_2 ?? "", image_url_3: p.image_url_3 ?? "", section: p.section ?? "", purchase_rate: p.purchase_rate, mrp: p.mrp, discount_rate: p.discount_rate, video_url: (p as any).video_url ?? "", coming_soon: (p as any).coming_soon ?? false });
+    setForm({ name: p.name, description: p.description ?? "", price: p.price, category: p.category ?? "", stock: p.stock, is_active: p.is_active, image_url: p.image_url ?? "", image_url_2: p.image_url_2 ?? "", image_url_3: p.image_url_3 ?? "", section: p.section ?? "", purchase_rate: p.purchase_rate, mrp: p.mrp, discount_rate: p.discount_rate, video_url: (p as any).video_url ?? "", coming_soon: (p as any).coming_soon ?? false, wallet_points: (p as any).wallet_points ?? 0 });
     setEditId(p.id); setOpen(true);
   };
 
@@ -239,6 +240,7 @@ const ProductsPage = () => {
             <div className="flex items-center gap-2"><Switch checked={form.is_active} onCheckedChange={(v) => setForm({ ...form, is_active: v })} /><Label>Active</Label></div>
             <div className="flex items-center gap-2"><Switch checked={form.coming_soon} onCheckedChange={(v) => setForm({ ...form, coming_soon: v })} /><Label>Coming Soon</Label></div>
           </div>
+          <div><Label>Wallet Points (earned by customer)</Label><Input type="number" value={form.wallet_points} onChange={(e) => setForm({ ...form, wallet_points: +e.target.value })} placeholder="0" /></div>
           {(() => {
             const selectedCat = categories.find(c => c.name === form.category);
             if (selectedCat?.variation_type) {
@@ -485,6 +487,7 @@ const ProductsPage = () => {
               <div className="flex items-center gap-2"><Switch checked={sellerForm.is_featured} onCheckedChange={(v) => setSellerForm({ ...sellerForm, is_featured: v })} /><Label>Featured</Label></div>
               <div className="flex items-center gap-2"><Switch checked={sellerForm.coming_soon} onCheckedChange={(v) => setSellerForm({ ...sellerForm, coming_soon: v })} /><Label>Coming Soon</Label></div>
             </div>
+            <div><Label>Wallet Points (earned by customer)</Label><Input type="number" value={sellerForm.wallet_points} onChange={(e) => setSellerForm({ ...sellerForm, wallet_points: +e.target.value })} placeholder="0" /></div>
             <Button className="w-full" onClick={handleSellerSave}>Save Changes</Button>
           </div>
         </DialogContent>

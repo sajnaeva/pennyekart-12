@@ -922,6 +922,7 @@ export type Database = {
           updated_by: string | null
           upload_status: string | null
           video_url: string | null
+          wallet_points: number
         }
         Insert: {
           category?: string | null
@@ -946,6 +947,7 @@ export type Database = {
           updated_by?: string | null
           upload_status?: string | null
           video_url?: string | null
+          wallet_points?: number
         }
         Update: {
           category?: string | null
@@ -970,6 +972,7 @@ export type Database = {
           updated_by?: string | null
           upload_status?: string | null
           video_url?: string | null
+          wallet_points?: number
         }
         Relationships: []
       }
@@ -1210,6 +1213,7 @@ export type Database = {
           updated_at: string
           upload_status: string | null
           video_url: string | null
+          wallet_points: number
         }
         Insert: {
           area_godown_id?: string | null
@@ -1235,6 +1239,7 @@ export type Database = {
           updated_at?: string
           upload_status?: string | null
           video_url?: string | null
+          wallet_points?: number
         }
         Update: {
           area_godown_id?: string | null
@@ -1260,6 +1265,7 @@ export type Database = {
           updated_at?: string
           upload_status?: string | null
           video_url?: string | null
+          wallet_points?: number
         }
         Relationships: [
           {

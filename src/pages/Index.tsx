@@ -26,7 +26,7 @@ const Index = () => {
   const isCustomer = user && profile?.user_type === "customer";
 
   // Helper to convert products to row format
-  const toRowFormat = (items: { id?: string; name: string; price: number; mrp: number; image_url: string | null; coming_soon?: boolean }[]) =>
+  const toRowFormat = (items: { id?: string; name: string; price: number; mrp: number; image_url: string | null; coming_soon?: boolean; wallet_points?: number }[]) =>
     items.map(p => ({
       id: (p as any).id,
       name: p.name,
@@ -35,6 +35,7 @@ const Index = () => {
       rating: 4.5,
       image: p.image_url || "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=300&h=300&fit=crop",
       coming_soon: p.coming_soon,
+      wallet_points: p.wallet_points,
     }));
 
   // Group area products by category

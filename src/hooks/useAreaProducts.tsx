@@ -14,6 +14,7 @@ export interface AreaProduct {
   section: string | null;
   stock: number;
   coming_soon?: boolean;
+  wallet_points?: number;
 }
 
 const fetchAreaProducts = async (localBodyId: string, wardNumber: number): Promise<AreaProduct[]> => {
@@ -49,7 +50,7 @@ const fetchAreaProducts = async (localBodyId: string, wardNumber: number): Promi
       .gt("quantity", 0),
     supabase
       .from("seller_products")
-      .select("id, name, price, mrp, discount_rate, image_url, description, category, stock, coming_soon")
+      .select("id, name, price, mrp, discount_rate, image_url, description, category, stock, coming_soon, wallet_points")
       .in("area_godown_id", godownArr)
       .eq("is_active", true)
       .eq("is_approved", true)
@@ -63,7 +64,7 @@ const fetchAreaProducts = async (localBodyId: string, wardNumber: number): Promi
     const productIds = [...new Set(stockRes.data.map(s => s.product_id))];
     const { data: productData } = await supabase
       .from("products")
-      .select("id, name, price, mrp, discount_rate, image_url, description, category, section, stock, coming_soon")
+      .select("id, name, price, mrp, discount_rate, image_url, description, category, section, stock, coming_soon, wallet_points")
       .in("id", productIds)
       .eq("is_active", true)
       .limit(50);
