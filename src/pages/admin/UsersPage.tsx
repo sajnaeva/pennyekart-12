@@ -8,6 +8,7 @@ import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { usePermissions } from "@/hooks/usePermissions";
+import CustomerList from "@/components/admin/CustomerList";
 
 interface Profile {
   id: string;
@@ -139,90 +140,68 @@ const UsersPage = () => {
         </TabsList>
       </Tabs>
 
-      <div className="admin-table-wrap">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Name</TableHead>
-              {isCustomerTab ? (
-                <>
-                  <TableHead>Mobile</TableHead>
-                  <TableHead>District</TableHead>
-                  <TableHead>Panchayath</TableHead>
-                  <TableHead>Ward</TableHead>
-                </>
-              ) : (
-                <>
-                  <TableHead>Email / Mobile</TableHead>
-                  <TableHead>Type</TableHead>
-                </>
-              )}
-              <TableHead>Approved</TableHead>
-              <TableHead>Role</TableHead>
-              {isSuperAdmin && <TableHead>Super Admin</TableHead>}
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {filteredUsers.map((u) => (
-              <TableRow key={u.id}>
-                <TableCell>{u.full_name ?? "—"}</TableCell>
-                {isCustomerTab ? (
-                  <>
-                    <TableCell>{u.mobile_number ?? "—"}</TableCell>
-                    <TableCell>{u.district_name ?? "—"}</TableCell>
-                    <TableCell>
-                      {u.local_body_name ? (
-                        <span>{u.local_body_name} <span className="text-xs text-muted-foreground">({u.local_body_type})</span></span>
-                      ) : "—"}
-                    </TableCell>
-                    <TableCell>{u.ward_number ?? "—"}</TableCell>
-                  </>
-                ) : (
-                  <>
-                    <TableCell>
-                      <div>{u.email ?? "—"}</div>
-                      {u.mobile_number && <div className="text-xs text-muted-foreground">{u.mobile_number}</div>}
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant={getTypeBadgeVariant(u.user_type)}>
-                        {USER_TYPE_LABELS[u.user_type] ?? u.user_type}
-                      </Badge>
-                    </TableCell>
-                  </>
-                )}
-                <TableCell>
-                  <Switch checked={u.is_approved} onCheckedChange={() => toggleApproval(u.user_id, u.is_approved)} />
-                </TableCell>
-                <TableCell>
-                  {isSuperAdmin ? (
-                    <Select value={u.role_id ?? "none"} onValueChange={(v) => updateRole(u.user_id, v)}>
-                      <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="none">No role</SelectItem>
-                        {roles.map((r) => <SelectItem key={r.id} value={r.id}>{r.name}</SelectItem>)}
-                      </SelectContent>
-                    </Select>
-                  ) : (
-                    <Badge variant="secondary">{roles.find((r) => r.id === u.role_id)?.name ?? "No role"}</Badge>
-                  )}
-                </TableCell>
-                {isSuperAdmin && (
-                  <TableCell>
-                    <Switch checked={u.is_super_admin} onCheckedChange={() => toggleSuperAdmin(u.user_id, u.is_super_admin)} />
-                  </TableCell>
-                )}
-              </TableRow>
-            ))}
-            {filteredUsers.length === 0 && (
+      {isCustomerTab ? (
+        <CustomerList customers={filteredUsers} />
+      ) : (
+        <div className="admin-table-wrap">
+          <Table>
+            <TableHeader>
               <TableRow>
-                <TableCell colSpan={isCustomerTab ? customerColSpan : otherColSpan} className="text-center text-muted-foreground py-8">
-                  No users found
-                </TableCell>
+                <TableHead>Name</TableHead>
+                <TableHead>Email / Mobile</TableHead>
+                <TableHead>Type</TableHead>
+                <TableHead>Approved</TableHead>
+                <TableHead>Role</TableHead>
+                {isSuperAdmin && <TableHead>Super Admin</TableHead>}
               </TableRow>
-            )}
-          </TableBody>
-        </Table>
-      </div>
+            </TableHeader>
+            <TableBody>
+              {filteredUsers.map((u) => (
+                <TableRow key={u.id}>
+                  <TableCell>{u.full_name ?? "—"}</TableCell>
+                  <TableCell>
+                    <div>{u.email ?? "—"}</div>
+                    {u.mobile_number && <div className="text-xs text-muted-foreground">{u.mobile_number}</div>}
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant={getTypeBadgeVariant(u.user_type)}>
+                      {USER_TYPE_LABELS[u.user_type] ?? u.user_type}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
+                    <Switch checked={u.is_approved} onCheckedChange={() => toggleApproval(u.user_id, u.is_approved)} />
+                  </TableCell>
+                  <TableCell>
+                    {isSuperAdmin ? (
+                      <Select value={u.role_id ?? "none"} onValueChange={(v) => updateRole(u.user_id, v)}>
+                        <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="none">No role</SelectItem>
+                          {roles.map((r) => <SelectItem key={r.id} value={r.id}>{r.name}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                    ) : (
+                      <Badge variant="secondary">{roles.find((r) => r.id === u.role_id)?.name ?? "No role"}</Badge>
+                    )}
+                  </TableCell>
+                  {isSuperAdmin && (
+                    <TableCell>
+                      <Switch checked={u.is_super_admin} onCheckedChange={() => toggleSuperAdmin(u.user_id, u.is_super_admin)} />
+                    </TableCell>
+                  )}
+                </TableRow>
+              ))}
+              {filteredUsers.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={otherColSpan} className="text-center text-muted-foreground py-8">
+                    No users found
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </div>
+      )}
     </AdminLayout>
   );
 };
