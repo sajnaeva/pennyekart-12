@@ -132,12 +132,3 @@
   }
 }
 
-/* Admin zoom-out on very small mobile screens for deployed site */
-@media (max-width: 480px) {
-  .admin-zoom-wrapper {
-    transform: scale(0.85);
-    transform-origin: top left;
-    width: 117.65%; /* 1/0.85 to fill viewport */
-    min-height: 117.65vh;
-  }
-}

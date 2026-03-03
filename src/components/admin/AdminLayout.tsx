@@ -71,7 +71,7 @@ const AdminLayout = ({ children }: { children: ReactNode }) => {
   const currentPageLabel = visibleItems.find((i) => i.path === location.pathname)?.label ?? "Admin";
 
   return (
-    <div className="flex min-h-screen bg-muted/40 admin-zoom-wrapper">
+    <div className="flex min-h-screen bg-muted/40">
       {/* Desktop Sidebar */}
       <aside className="hidden w-64 flex-col border-r bg-card lg:flex">
         <div className="flex h-16 items-center gap-2 border-b px-6">

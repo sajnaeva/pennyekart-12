@@ -190,7 +190,7 @@ const ProductsPage = () => {
       <DialogTrigger asChild>
         <Button><Plus className="mr-2 h-4 w-4" /> Add Product</Button>
       </DialogTrigger>
-      <DialogContent className="max-h-[85vh] flex flex-col">
+      <DialogContent className="max-h-[85vh] flex flex-col max-w-[95vw] sm:max-w-lg">
         <DialogHeader><DialogTitle>{editId ? "Edit Product" : "New Product"}</DialogTitle></DialogHeader>
         <div className="space-y-3 overflow-y-auto pr-2 flex-1">
           <div><Label>Name</Label><Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} /></div>
