@@ -22,11 +22,17 @@ interface Godown {
   created_at: string;
 }
 
+interface District {
+  id: string;
+  name: string;
+}
+
 interface LocalBody {
   id: string;
   name: string;
   body_type: string;
   ward_count: number;
+  district_id: string;
 }
 
 interface GodownLocalBody {
