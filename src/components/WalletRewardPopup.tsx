@@ -1,6 +1,7 @@
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Wallet, Gift, PartyPopper, Sparkles } from "lucide-react";
+import logo from "@/assets/logo.png";
 
 interface RewardItem {
   amount: number;
@@ -19,22 +20,26 @@ const WalletRewardPopup = ({ open, onClose, rewards, totalAmount }: WalletReward
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
       <DialogContent className="max-w-sm p-0 overflow-hidden border-0 rounded-2xl">
         {/* Gradient Header */}
-        <div className="relative bg-gradient-to-br from-emerald-500 via-green-500 to-teal-600 px-6 pt-8 pb-10 text-center overflow-hidden">
+        <div className="relative bg-gradient-to-br from-emerald-500 via-green-500 to-teal-600 px-6 pt-6 pb-10 text-center overflow-hidden">
           {/* Decorative circles */}
           <div className="absolute -top-6 -left-6 w-24 h-24 rounded-full bg-white/10 blur-sm" />
           <div className="absolute -bottom-4 -right-4 w-20 h-20 rounded-full bg-white/10 blur-sm" />
           <div className="absolute top-2 right-8 w-8 h-8 rounded-full bg-yellow-300/30 animate-pulse" />
           <div className="absolute bottom-4 left-6 w-6 h-6 rounded-full bg-yellow-300/20 animate-pulse delay-200" />
 
+          {/* Logo */}
+          <img src={logo} alt="Pennyekart" className="mx-auto mb-3 h-10 object-contain drop-shadow-lg" />
+
           {/* Icon */}
-          <div className="relative mx-auto mb-3 w-16 h-16 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center shadow-lg">
-            <PartyPopper className="h-8 w-8 text-white drop-shadow" />
+          <div className="relative mx-auto mb-3 w-14 h-14 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center shadow-lg">
+            <PartyPopper className="h-7 w-7 text-white drop-shadow" />
           </div>
 
           <h2 className="text-white text-xl font-bold tracking-tight drop-shadow">
-            🎉 Congratulations!
+            🎉 അഭിനന്ദനങ്ങൾ!
           </h2>
-          <p className="text-white/80 text-sm mt-1">You earned wallet rewards</p>
+          <p className="text-white/90 text-sm mt-1">Congratulations!</p>
+          <p className="text-white/80 text-xs mt-0.5">നിങ്ങൾ വാലറ്റ് റിവാർഡ് നേടി</p>
 
           {/* Big amount */}
           <div className="mt-4 flex items-center justify-center gap-2">
@@ -44,7 +49,7 @@ const WalletRewardPopup = ({ open, onClose, rewards, totalAmount }: WalletReward
             </span>
             <Sparkles className="h-5 w-5 text-yellow-300 animate-pulse" />
           </div>
-          <p className="text-white/70 text-xs mt-1">credited to your wallet</p>
+          <p className="text-white/70 text-xs mt-1">നിങ്ങളുടെ വാലറ്റിലേക്ക് ചേർത്തു</p>
         </div>
 
         {/* Reward breakdown */}
@@ -69,7 +74,7 @@ const WalletRewardPopup = ({ open, onClose, rewards, totalAmount }: WalletReward
           {/* Wallet balance hint */}
           <div className="flex items-center justify-center gap-2 pt-2 text-xs text-muted-foreground">
             <Wallet className="h-3.5 w-3.5" />
-            <span>Use wallet balance on your next order!</span>
+            <span>അടുത്ത ഓർഡറിൽ വാലറ്റ് ബാലൻസ് ഉപയോഗിക്കൂ!</span>
           </div>
         </div>
 
@@ -79,7 +84,7 @@ const WalletRewardPopup = ({ open, onClose, rewards, totalAmount }: WalletReward
             onClick={onClose}
             className="w-full rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white font-semibold shadow-lg shadow-emerald-500/25 transition-all"
           >
-            Awesome! 🎊
+            കൊള്ളാം! 🎊
           </Button>
         </div>
       </DialogContent>
