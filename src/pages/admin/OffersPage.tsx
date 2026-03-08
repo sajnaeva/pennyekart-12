@@ -43,6 +43,11 @@ interface GodownWard {
   ward_number: number;
 }
 
+interface GodownLocalBody {
+  godown_id: string;
+  local_body_id: string;
+}
+
 interface GodownStock {
   godown_id: string;
   product_id: string;
