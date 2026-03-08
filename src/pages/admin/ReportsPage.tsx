@@ -271,7 +271,101 @@ const ReportsPage = () => {
 
   return (
     <AdminLayout>
-      <h1 className="mb-6 text-2xl font-bold">Reports & Analytics</h1>
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
+        <h1 className="text-2xl font-bold">Reports & Analytics</h1>
+        <div className="flex flex-wrap items-center gap-2">
+          {/* Date Range Preset */}
+          <Select value={dateRange} onValueChange={handleDatePreset}>
+            <SelectTrigger className="w-[130px] h-9 text-xs">
+              <SelectValue placeholder="Date Range" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Time</SelectItem>
+              <SelectItem value="7d">Last 7 Days</SelectItem>
+              <SelectItem value="30d">Last 30 Days</SelectItem>
+              <SelectItem value="90d">Last 90 Days</SelectItem>
+              <SelectItem value="6m">Last 6 Months</SelectItem>
+              <SelectItem value="1y">Last 1 Year</SelectItem>
+              <SelectItem value="custom">Custom</SelectItem>
+            </SelectContent>
+          </Select>
+
+          {/* Custom Date Pickers */}
+          {dateRange === "custom" && (
+            <>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" size="sm" className={cn("text-xs gap-1", !dateFrom && "text-muted-foreground")}>
+                    <CalendarIcon className="h-3.5 w-3.5" />
+                    {dateFrom ? format(dateFrom, "dd MMM yy") : "From"}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar mode="single" selected={dateFrom} onSelect={setDateFrom} initialFocus className="p-3 pointer-events-auto" />
+                </PopoverContent>
+              </Popover>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" size="sm" className={cn("text-xs gap-1", !dateTo && "text-muted-foreground")}>
+                    <CalendarIcon className="h-3.5 w-3.5" />
+                    {dateTo ? format(dateTo, "dd MMM yy") : "To"}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar mode="single" selected={dateTo} onSelect={setDateTo} initialFocus className="p-3 pointer-events-auto" />
+                </PopoverContent>
+              </Popover>
+            </>
+          )}
+
+          {/* Status Filter */}
+          <Select value={filterStatus} onValueChange={setFilterStatus}>
+            <SelectTrigger className="w-[120px] h-9 text-xs">
+              <SelectValue placeholder="Status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Status</SelectItem>
+              <SelectItem value="delivered">Delivered</SelectItem>
+              <SelectItem value="pending">Pending</SelectItem>
+              <SelectItem value="processing">Processing</SelectItem>
+              <SelectItem value="cancelled">Cancelled</SelectItem>
+            </SelectContent>
+          </Select>
+
+          {/* Category Filter */}
+          <Select value={filterCategory} onValueChange={setFilterCategory}>
+            <SelectTrigger className="w-[130px] h-9 text-xs">
+              <SelectValue placeholder="Category" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Categories</SelectItem>
+              {categories.map(cat => (
+                <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          {/* Reset */}
+          {(dateRange !== "all" || filterStatus !== "all" || filterCategory !== "all") && (
+            <Button variant="ghost" size="sm" className="text-xs h-9" onClick={() => { setDateRange("all"); setDateFrom(undefined); setDateTo(undefined); setFilterStatus("all"); setFilterCategory("all"); }}>
+              Reset
+            </Button>
+          )}
+        </div>
+      </div>
+
+      {/* Active filters summary */}
+      {(dateRange !== "all" || filterStatus !== "all" || filterCategory !== "all") && (
+        <div className="mb-4 flex items-center gap-2 text-xs text-muted-foreground">
+          <Filter className="h-3.5 w-3.5" />
+          <span>
+            Showing {filteredOrders.length} of {orders.length} orders
+            {dateFrom && dateTo && ` • ${format(dateFrom, "dd MMM yy")} – ${format(dateTo, "dd MMM yy")}`}
+            {filterStatus !== "all" && ` • Status: ${filterStatus}`}
+            {filterCategory !== "all" && ` • Category: ${filterCategory}`}
+          </span>
+        </div>
+      )}
 
       <Tabs defaultValue="overview">
         <TabsList className="mb-6 flex flex-wrap gap-1 h-auto">
