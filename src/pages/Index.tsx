@@ -137,11 +137,9 @@ const Index = () => {
   const mergedBySection = (() => {
     if (!isCustomer) return {};
     const merged: Record<string, any[]> = {};
-    // Start with section products from useSectionProducts (admin offers)
     for (const sec of sectionOrder) {
       const sectionItems = sectionGrouped[sec]?.items || [];
       const areaItems = areaBySection[sec] || [];
-      // Merge, dedup by id
       const seen = new Set<string>();
       const combined: any[] = [];
       for (const item of [...sectionItems, ...areaItems]) {
@@ -154,6 +152,79 @@ const Index = () => {
     }
     return merged;
   })();
+
+  const sectionLabels: Record<string, string> = {
+    featured: "Featured Products",
+    most_ordered: "Most Ordered Items",
+    new_arrivals: "New Arrivals",
+    low_budget: "Low Budget Picks",
+    sponsors: "Sponsors",
+  };
+
+  // Render section-based products (from admin)
+  const renderSectionProducts = () => {
+    if (sectionLoading) {
+      return <div className="py-8 text-center text-muted-foreground">Loading products...</div>;
+    }
+
+    // If category filter is active, show selected category first then others
+    if (selectedCategory) {
+      const sourceProducts = isCustomer ? groupedByCategory : sectionByCategory;
+      const selectedItems = sourceProducts[selectedCategory] || [];
+      const rows: React.ReactNode[] = [];
+
+      if (selectedItems.length > 0) {
+        rows.push(<ProductRow key={selectedCategory} title={selectedCategory} products={toRowFormat(applySorting(selectedItems))} />);
+      } else {
+        rows.push(
+          <div key="empty" className="py-4 text-center text-muted-foreground">
+            No products available in "{selectedCategory}" yet.
+          </div>
+        );
+      }
+
+      Object.entries(sourceProducts)
+        .filter(([cat]) => cat !== selectedCategory)
+        .forEach(([cat, items]) => {
+          if (items.length > 0) {
+            rows.push(<ProductRow key={cat} title={cat} products={toRowFormat(applySorting(items))} />);
+          }
+        });
+
+      return rows;
+    }
+
+    // For logged-in customers: show merged section rows, then remaining area products by category
+    if (isCustomer) {
+      if (areaLoading && sectionLoading) {
+        return <div className="py-8 text-center text-muted-foreground">Loading products for your area...</div>;
+      }
+
+      const sectionRows = sectionOrder
+        .filter(s => mergedBySection[s]?.length > 0)
+        .map(sec => (
+          <ProductRow key={sec} title={sectionLabels[sec] || sec} products={toRowFormat(applySorting(mergedBySection[sec]))} sectionKey={sec} />
+        ));
+
+      // Show remaining area products (not in any section) by category
+      const sectionProductIds = new Set(Object.values(mergedBySection).flat().map((p: any) => p.id));
+      const nonsectionProducts = areaProducts.filter(p => !sectionProductIds.has(p.id) && (!p.section || p.section === "" || p.section === "seller"));
+      const nonsectionByCategory = nonsectionProducts.reduce<Record<string, typeof areaProducts>>((acc, p) => {
+        const cat = p.category || "Other";
+        if (!acc[cat]) acc[cat] = [];
+        acc[cat].push(p);
+        return acc;
+      }, {});
+      const categoryRows = Object.entries(nonsectionByCategory).map(([cat, items]) =>
+        items.length > 0 ? <ProductRow key={cat} title={cat} products={toRowFormat(applySorting(items))} /> : null
+      );
+
+      if (sectionRows.length === 0 && categoryRows.length === 0) {
+        return <div className="py-8 text-center text-muted-foreground">No products available in your area yet.</div>;
+      }
+
+      return [...sectionRows, ...categoryRows];
+    }
 
     // For non-logged-in: show section-based products from DB
     const sections = sectionOrder.filter(s => sectionGrouped[s]?.items.length > 0);
