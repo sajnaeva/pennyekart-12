@@ -67,6 +67,7 @@ const ReportsPage = () => {
   const [sellerWallets, setSellerWallets] = useState<SellerWallet[]>([]);
   const [sellerTxns, setSellerTxns] = useState<SellerWalletTxn[]>([]);
   const [localBodies, setLocalBodies] = useState<LocalBody[]>([]);
+  const [districts, setDistricts] = useState<District[]>([]);
   const [loading, setLoading] = useState(true);
 
   // ─── Filters ───────────────────────────────────────────────────────────────
