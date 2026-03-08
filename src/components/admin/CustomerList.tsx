@@ -551,6 +551,7 @@ const CustomerList = ({ customers, orderSummaries, walletSummaries }: CustomerLi
               <TableHead className="text-center">Orders</TableHead>
               <TableHead className="text-right">Total Spent</TableHead>
               <TableHead>Last Order</TableHead>
+              <TableHead>Search History</TableHead>
               <TableHead className="text-right">Wallet</TableHead>
               <TableHead>Panchayath</TableHead>
               <TableHead>Ward</TableHead>
@@ -560,6 +561,7 @@ const CustomerList = ({ customers, orderSummaries, walletSummaries }: CustomerLi
             {filtered.map((c, i) => {
               const o = orderSummaries?.get(c.user_id);
               const w = walletSummaries?.get(c.user_id);
+              const sh = searchHistories.get(c.user_id);
               return (
                 <TableRow key={c.id}>
                   <TableCell className="text-muted-foreground">{i + 1}</TableCell>
@@ -602,6 +604,30 @@ const CustomerList = ({ customers, orderSummaries, walletSummaries }: CustomerLi
                       </div>
                     ) : "—"}
                   </TableCell>
+                  <TableCell className="text-xs max-w-[180px]">
+                    {sh ? (
+                      <div className="flex flex-col gap-0.5">
+                        <div className="flex items-center gap-1">
+                          <Search className="h-3 w-3 text-muted-foreground" />
+                          <Badge variant="secondary" className="text-[10px]">{sh.search_count} searches</Badge>
+                        </div>
+                        <div className="flex flex-wrap gap-1 mt-1">
+                          {sh.recent_searches.slice(0, 3).map((s, idx) => (
+                            <Badge key={idx} variant="outline" className="text-[10px] truncate max-w-[60px]" title={s}>
+                              {s}
+                            </Badge>
+                          ))}
+                        </div>
+                        {sh.last_search_at && (
+                          <span className="text-[10px] text-muted-foreground mt-0.5">
+                            Last: {getRelativeTime(sh.last_search_at)}
+                          </span>
+                        )}
+                      </div>
+                    ) : (
+                      <span className="text-muted-foreground">No searches</span>
+                    )}
+                  </TableCell>
                   <TableCell className="text-right">
                     {w && w.balance > 0 ? (
                       <Badge variant="outline" className="font-mono">₹{w.balance.toFixed(0)}</Badge>
@@ -620,7 +646,7 @@ const CustomerList = ({ customers, orderSummaries, walletSummaries }: CustomerLi
             })}
             {filtered.length === 0 && (
               <TableRow>
-                <TableCell colSpan={12} className="text-center text-muted-foreground py-8">No customers found</TableCell>
+                <TableCell colSpan={13} className="text-center text-muted-foreground py-8">No customers found</TableCell>
               </TableRow>
             )}
           </TableBody>
