@@ -207,6 +207,7 @@ const PurchasePage = () => {
       setItems([]);
       setSelectedGodownIds([]);
       setPurchaseDate(new Date().toISOString().split("T")[0]);
+      setNarration("");
       // Fetch next number after a brief delay to ensure DB commit
       const { data: counterData } = await supabase.from("purchase_counter").select("last_number").limit(1).single();
       if (counterData) {
