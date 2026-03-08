@@ -108,7 +108,13 @@ const ReportsPage = () => {
   const sellerProdMapEarly: Record<string, SellerProduct & { category?: string | null }> = {};
   sellerProducts.forEach(sp => { sellerProdMapEarly[sp.id] = sp as any; });
 
-  // Filter orders by date range, status, and category
+  // Compute local body IDs for selected district
+  const localBodyIdsForDistrict = useMemo(() => {
+    if (filterDistrict === "all") return null;
+    return new Set(localBodies.filter(lb => lb.district_id === filterDistrict).map(lb => lb.id));
+  }, [localBodies, filterDistrict]);
+
+  // Filter orders by date range, status, category, and location
   const filteredOrders = useMemo(() => {
     return orders.filter(o => {
       if (dateFrom && dateTo) {
@@ -124,9 +130,21 @@ const ReportsPage = () => {
         });
         if (!hasCategory) return false;
       }
+      // Location filters
+      if (filterDistrict !== "all" || filterLocalBody !== "all" || filterWard !== "all") {
+        if (!o.user_id) return false;
+        const prof = profileMap[o.user_id];
+        if (!prof) return false;
+        if (filterLocalBody !== "all") {
+          if (prof.local_body_id !== filterLocalBody) return false;
+          if (filterWard !== "all" && prof.ward_number !== Number(filterWard)) return false;
+        } else if (filterDistrict !== "all") {
+          if (!prof.local_body_id || !localBodyIdsForDistrict?.has(prof.local_body_id)) return false;
+        }
+      }
       return true;
     });
-  }, [orders, dateFrom, dateTo, filterStatus, filterCategory, productMapEarly, sellerProdMapEarly]);
+  }, [orders, dateFrom, dateTo, filterStatus, filterCategory, productMapEarly, sellerProdMapEarly, filterDistrict, filterLocalBody, filterWard, profileMap, localBodyIdsForDistrict]);
 
   // Location filter derived data
   const filteredLocalBodies = useMemo(() => {
