@@ -4,7 +4,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Users, MapPin, ShoppingCart, Wallet, TrendingUp, CalendarDays, UserCheck, UserX, Activity, Download, Clock, Zap, Search } from "lucide-react";
+import { Users, MapPin, ShoppingCart, Wallet, TrendingUp, CalendarDays, UserCheck, UserX, Activity, Download, Clock, Zap, Search, Phone } from "lucide-react";
+import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { format, subDays, formatDistanceToNow, differenceInDays, differenceInHours } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
@@ -58,6 +59,7 @@ const CustomerList = ({ customers, orderSummaries, walletSummaries }: CustomerLi
   const [activityFilter, setActivityFilter] = useState<ActivityFilter>("all");
   const [inactivePeriod, setInactivePeriod] = useState<InactivePeriod>("30");
   const [searchHistories, setSearchHistories] = useState<Map<string, SearchHistorySummary>>(new Map());
+  const [mobileSearch, setMobileSearch] = useState("");
 
   // Fetch search histories for all customers
   useEffect(() => {
@@ -149,6 +151,12 @@ const CustomerList = ({ customers, orderSummaries, walletSummaries }: CustomerLi
   // Filter and sort
   const filtered = useMemo(() => {
     let result = customers.filter((c) => {
+      // Mobile number search filter
+      if (mobileSearch.trim()) {
+        const normalizedSearch = mobileSearch.replace(/\D/g, "");
+        const normalizedMobile = (c.mobile_number ?? "").replace(/\D/g, "");
+        if (!normalizedMobile.includes(normalizedSearch)) return false;
+      }
       if (filterPanchayath !== "all" && c.local_body_id !== filterPanchayath) return false;
       if (filterWard !== "all" && String(c.ward_number) !== filterWard) return false;
       if (activityFilter !== "all") {
@@ -175,7 +183,7 @@ const CustomerList = ({ customers, orderSummaries, walletSummaries }: CustomerLi
       }
     });
     return result;
-  }, [customers, filterPanchayath, filterWard, sortBy, activityFilter, inactivePeriod, orderSummaries, walletSummaries]);
+  }, [customers, filterPanchayath, filterWard, sortBy, activityFilter, inactivePeriod, orderSummaries, walletSummaries, mobileSearch]);
 
   // Activity counts (respecting location filters)
   const activityCounts = useMemo(() => {
@@ -532,8 +540,20 @@ const CustomerList = ({ customers, orderSummaries, walletSummaries }: CustomerLi
             </SelectContent>
           </Select>
         </div>
-        {(filterPanchayath !== "all" || filterWard !== "all" || activityFilter !== "all") && (
-          <Badge variant="secondary" className="cursor-pointer" onClick={() => { setFilterPanchayath("all"); setFilterWard("all"); setActivityFilter("all"); }}>
+        <div className="flex items-center gap-2">
+          <span className="text-sm font-medium text-muted-foreground"><Phone className="h-3.5 w-3.5 inline" /></span>
+          <div className="relative">
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+            <Input
+              placeholder="Search mobile..."
+              value={mobileSearch}
+              onChange={(e) => setMobileSearch(e.target.value)}
+              className="w-40 h-9 pl-8 text-sm"
+            />
+          </div>
+        </div>
+        {(filterPanchayath !== "all" || filterWard !== "all" || activityFilter !== "all" || mobileSearch.trim()) && (
+          <Badge variant="secondary" className="cursor-pointer" onClick={() => { setFilterPanchayath("all"); setFilterWard("all"); setActivityFilter("all"); setMobileSearch(""); }}>
             Clear all filters ✕
           </Badge>
         )}
