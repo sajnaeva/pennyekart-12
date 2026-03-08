@@ -22,6 +22,7 @@ const sectionOrder = ["featured", "sponsors", "most_ordered", "new_arrivals", "l
 const Index = () => {
   const [platform, setPlatform] = useState("pennyekart");
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [sortBy, setSortBy] = useState<SortOption>("relevance");
   const [showSignupReward, setShowSignupReward] = useState(false);
   const [signupRewardAmount, setSignupRewardAmount] = useState(0);
   const navigate = useNavigate();
