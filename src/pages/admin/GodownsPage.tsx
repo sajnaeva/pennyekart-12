@@ -121,6 +121,9 @@ const GodownsPage = () => {
   const [allWards, setAllWards] = useState(false);
   const [activeTab, setActiveTab] = useState("micro");
   const [localBodySearch, setLocalBodySearch] = useState("");
+  const [districts, setDistricts] = useState<District[]>([]);
+  const [filterDistrictId, setFilterDistrictId] = useState("");
+  const [filterLocalBodyId, setFilterLocalBodyId] = useState("");
   // Purchase history state
   const [purchaseHistoryFrom, setPurchaseHistoryFrom] = useState("");
   const [purchaseHistoryTo, setPurchaseHistoryTo] = useState("");
