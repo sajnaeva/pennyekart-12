@@ -68,6 +68,47 @@ const ReportsPage = () => {
   const [localBodies, setLocalBodies] = useState<LocalBody[]>([]);
   const [loading, setLoading] = useState(true);
 
+  // ─── Filters ───────────────────────────────────────────────────────────────
+  const [dateRange, setDateRange] = useState<string>("all");
+  const [dateFrom, setDateFrom] = useState<Date | undefined>(undefined);
+  const [dateTo, setDateTo] = useState<Date | undefined>(undefined);
+  const [filterCategory, setFilterCategory] = useState<string>("all");
+  const [filterStatus, setFilterStatus] = useState<string>("all");
+
+  // Compute available categories
+  const categories = useMemo(() => {
+    const cats = new Set<string>();
+    products.forEach(p => { if (p.category) cats.add(p.category); });
+    return Array.from(cats).sort();
+  }, [products]);
+
+  // Apply date preset
+  const handleDatePreset = (preset: string) => {
+    setDateRange(preset);
+    const now = new Date();
+    switch (preset) {
+      case "7d": setDateFrom(subDays(now, 7)); setDateTo(now); break;
+      case "30d": setDateFrom(subDays(now, 30)); setDateTo(now); break;
+      case "90d": setDateFrom(subDays(now, 90)); setDateTo(now); break;
+      case "6m": setDateFrom(subMonths(now, 6)); setDateTo(now); break;
+      case "1y": setDateFrom(subMonths(now, 12)); setDateTo(now); break;
+      case "custom": break;
+      default: setDateFrom(undefined); setDateTo(undefined); break;
+    }
+  };
+
+  // Filter orders by date range and status
+  const filteredOrders = useMemo(() => {
+    return orders.filter(o => {
+      if (dateFrom && dateTo) {
+        const d = new Date(o.created_at);
+        if (!isWithinInterval(d, { start: startOfDay(dateFrom), end: endOfDay(dateTo) })) return false;
+      }
+      if (filterStatus !== "all" && o.status !== filterStatus) return false;
+      return true;
+    });
+  }, [orders, dateFrom, dateTo, filterStatus]);
+
   useEffect(() => {
     const load = async () => {
       setLoading(true);
