@@ -60,7 +60,7 @@ const ProductRow = ({ title, products, linkPrefix = "/product/", sectionKey }: P
         </div>
 
         <div className="flex gap-3 overflow-x-auto scrollbar-hide pb-2">
-          {products.map((p, i) => (
+          {sortedProducts.map((p, i) => (
             <div
               key={p.id || i}
               onClick={() => p.id && !p.coming_soon && navigate(`${linkPrefix}${p.id}`)}
