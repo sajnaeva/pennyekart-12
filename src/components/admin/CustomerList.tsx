@@ -59,6 +59,7 @@ const CustomerList = ({ customers, orderSummaries, walletSummaries }: CustomerLi
   const [activityFilter, setActivityFilter] = useState<ActivityFilter>("all");
   const [inactivePeriod, setInactivePeriod] = useState<InactivePeriod>("30");
   const [searchHistories, setSearchHistories] = useState<Map<string, SearchHistorySummary>>(new Map());
+  const [mobileSearch, setMobileSearch] = useState("");
 
   // Fetch search histories for all customers
   useEffect(() => {
