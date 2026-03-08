@@ -479,6 +479,7 @@ const CustomerList = ({ customers, orderSummaries, walletSummaries }: CustomerLi
               <SelectItem value="highest_spent">Highest Spent</SelectItem>
               <SelectItem value="highest_wallet">Highest Wallet</SelectItem>
               <SelectItem value="last_active">Last Active</SelectItem>
+              <SelectItem value="last_login">Last Login</SelectItem>
             </SelectContent>
           </Select>
         </div>
