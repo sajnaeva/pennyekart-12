@@ -502,6 +502,7 @@ const CustomerList = ({ customers, orderSummaries, walletSummaries }: CustomerLi
               <TableHead>Mobile</TableHead>
               <TableHead>Status</TableHead>
               <TableHead>Joined</TableHead>
+              <TableHead>Last Login</TableHead>
               <TableHead className="text-center">Orders</TableHead>
               <TableHead className="text-right">Total Spent</TableHead>
               <TableHead>Last Order</TableHead>
