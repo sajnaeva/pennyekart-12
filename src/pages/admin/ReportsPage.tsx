@@ -318,31 +318,42 @@ const ReportsPage = () => {
             <StatCard label="Gross Profit" value={fmt(grossProfit)} icon={BarChart3} sub={`${grossMargin.toFixed(1)}% gross margin`} color={grossProfit >= 0 ? "text-green-600" : "text-destructive"} />
           </div>
 
-          <Card>
-            <CardHeader><CardTitle>P&L Summary</CardTitle></CardHeader>
-            <CardContent>
-              <Table>
-                <TableBody>
-                  {[
-                    { label: "Gross Revenue (Delivered Orders)", value: fmt(grossRevenue), bold: false },
-                    { label: "(-) Cost of Goods Sold (COGS)", value: fmt(cogs), bold: false },
-                    { label: "Gross Profit", value: fmt(grossProfit), bold: true },
-                    { label: "Gross Margin %", value: `${grossMargin.toFixed(2)}%`, bold: true },
-                    { label: "Total Orders", value: String(orders.length), bold: false },
-                    { label: "Delivered Orders", value: String(delivered.length), bold: false },
-                    { label: "Cancelled Orders", value: String(cancelled.length), bold: false },
-                    { label: "Pending Orders", value: String(pending.length), bold: false },
-                    { label: "Average Order Value (Delivered)", value: delivered.length ? fmt(grossRevenue / delivered.length) : "—", bold: false },
-                  ].map(row => (
-                    <TableRow key={row.label}>
-                      <TableCell className={row.bold ? "font-semibold" : ""}>{row.label}</TableCell>
-                      <TableCell className={`text-right ${row.bold ? "font-bold text-lg" : ""}`}>{row.value}</TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
+          <Collapsible>
+            <Card>
+              <CollapsibleTrigger asChild>
+                <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors">
+                  <CardTitle className="flex items-center justify-between">
+                    P&L Summary
+                    <ChevronDown className="h-5 w-5 text-muted-foreground transition-transform duration-200 [&[data-state=open]]:rotate-180" />
+                  </CardTitle>
+                </CardHeader>
+              </CollapsibleTrigger>
+              <CollapsibleContent>
+                <CardContent>
+                  <Table>
+                    <TableBody>
+                      {[
+                        { label: "Gross Revenue (Delivered Orders)", value: fmt(grossRevenue), bold: false },
+                        { label: "(-) Cost of Goods Sold (COGS)", value: fmt(cogs), bold: false },
+                        { label: "Gross Profit", value: fmt(grossProfit), bold: true },
+                        { label: "Gross Margin %", value: `${grossMargin.toFixed(2)}%`, bold: true },
+                        { label: "Total Orders", value: String(orders.length), bold: false },
+                        { label: "Delivered Orders", value: String(delivered.length), bold: false },
+                        { label: "Cancelled Orders", value: String(cancelled.length), bold: false },
+                        { label: "Pending Orders", value: String(pending.length), bold: false },
+                        { label: "Average Order Value (Delivered)", value: delivered.length ? fmt(grossRevenue / delivered.length) : "—", bold: false },
+                      ].map(row => (
+                        <TableRow key={row.label}>
+                          <TableCell className={row.bold ? "font-semibold" : ""}>{row.label}</TableCell>
+                          <TableCell className={`text-right ${row.bold ? "font-bold text-lg" : ""}`}>{row.value}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </CardContent>
+              </CollapsibleContent>
+            </Card>
+          </Collapsible>
 
           {/* Monthly P&L table */}
           <Card>
