@@ -714,7 +714,7 @@ const CustomerList = ({ customers, orderSummaries, walletSummaries, onRefresh }:
             })}
             {filtered.length === 0 && (
               <TableRow>
-                <TableCell colSpan={13} className="text-center text-muted-foreground py-8">No customers found</TableCell>
+                <TableCell colSpan={14} className="text-center text-muted-foreground py-8">No customers found</TableCell>
               </TableRow>
             )}
           </TableBody>
