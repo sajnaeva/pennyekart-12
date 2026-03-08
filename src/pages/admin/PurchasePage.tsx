@@ -242,6 +242,7 @@ const PurchasePage = () => {
         purchase_price: row.purchase_price,
         batch_number: row.batch_number,
         expiry_date: row.expiry_date,
+        narration: row.narration,
         created_at: row.created_at,
         godown_id: row.godown_id,
         product_id: row.product_id,
