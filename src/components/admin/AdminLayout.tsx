@@ -28,6 +28,7 @@ const navItems = [
   { label: "App Settings", icon: SlidersHorizontal, path: "/admin/settings", perm: "read_products" },
   { label: "Storage Config", icon: Settings, path: "/admin/storage", perm: null, superOnly: true },
   { label: "Wallets", icon: Wallet, path: "/admin/wallets", perm: "read_users" },
+  { label: "Platform Margin", icon: Percent, path: "/admin/platform-margin", perm: "read_products" },
   { label: "Penny Prime", icon: Handshake, path: "/admin/penny-prime", perm: "read_orders" },
   { label: "Reports", icon: BarChart3, path: "/admin/reports", perm: "read_orders" },
 ];
