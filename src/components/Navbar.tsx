@@ -1,9 +1,10 @@
 import logo from "@/assets/logo.png";
-import { ShoppingCart, Menu, X, User, LogOut, Package, MapPin, Heart, Bell, ChevronDown, Wallet } from "lucide-react";
+import { ShoppingCart, Menu, X, User, LogOut, Package, MapPin, Heart, Bell, ChevronDown, Wallet, UserPlus } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
+import InviteFriendDialog from "@/components/InviteFriendDialog";
 
 const Navbar = () => {
   const [open, setOpen] = useState(false);
