@@ -65,7 +65,7 @@ const InviteFriendDialog = ({ open, onOpenChange }: InviteFriendDialogProps) => 
         </DialogHeader>
 
         <div className="flex flex-col items-center gap-4 py-4">
-          <img src={logo} alt="Pennyekart" className="h-14" />
+          <img src={inviteImg} alt="Invite Friends & Earn Rewards" className="w-full max-w-xs rounded-lg" />
           <p className="text-sm text-muted-foreground text-center">
             Share your referral link with friends. When they sign up, you earn wallet rewards! 🎉
           </p>
