@@ -164,6 +164,7 @@ const Navbar = () => {
         </div>
       )}
       <InviteFriendDialog open={inviteOpen} onOpenChange={setInviteOpen} />
+      <DownloadAppDialog open={downloadOpen} onOpenChange={setDownloadOpen} />
     </nav>
   );
 };
