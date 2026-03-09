@@ -14,7 +14,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "@/hooks/use-toast";
-import { Wallet, ArrowUpCircle, ArrowDownCircle, Settings, RefreshCw, Gift, ShoppingCart, Moon, CreditCard, Search, Eye, ShieldCheck } from "lucide-react";
+import { Wallet, ArrowUpCircle, ArrowDownCircle, Settings, RefreshCw, Gift, ShoppingCart, Moon, CreditCard, Search, Eye, ShieldCheck, UserPlus } from "lucide-react";
 
 interface WalletRow {
   id: string;
