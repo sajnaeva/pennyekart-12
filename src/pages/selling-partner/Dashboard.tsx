@@ -377,13 +377,14 @@ const SellingPartnerDashboard = () => {
     e.preventDefault();
     if (!editProduct) return;
     const mrp = parseFloat(editForm.mrp) || 0;
-    const discountRate = parseFloat(editForm.discount_rate) || 0;
+    const purchaseRate = parseFloat(editForm.purchase_rate) || 0;
+    const { price, discount } = calcPriceFromMargin(purchaseRate, mrp, editForm.category);
     const { error } = await supabase.from("seller_products").update({
       name: editForm.name.trim(),
       description: editForm.description.trim() || null,
-      price: mrp - discountRate,
-      purchase_rate: parseFloat(editForm.purchase_rate) || 0,
-      mrp, discount_rate: discountRate,
+      price,
+      purchase_rate: purchaseRate,
+      mrp, discount_rate: discount,
       category: editForm.category.trim() || null,
       stock: parseInt(editForm.stock) || 0,
       area_godown_id: editForm.area_godown_id || editProduct.area_godown_id,
