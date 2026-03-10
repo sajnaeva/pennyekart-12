@@ -78,7 +78,7 @@ const emptyForm = {
   name: "", description: "", price: "", category: "", stock: "",
   area_godown_id: "", image_url: "", image_url_2: "", image_url_3: "",
   purchase_rate: "", mrp: "", discount_rate: "", is_featured: false, video_url: "",
-  wallet_points: "",
+  wallet_points: "", featured_discount_type: "amount" as string, featured_discount_value: "",
 };
 
 const SellingPartnerDashboard = () => {
@@ -347,6 +347,8 @@ const SellingPartnerDashboard = () => {
       image_url_2: form.image_url_2 || null,
       image_url_3: form.image_url_3 || null,
       is_featured: form.is_featured,
+      featured_discount_type: form.is_featured ? form.featured_discount_type : 'amount',
+      featured_discount_value: form.is_featured ? (parseFloat(form.featured_discount_value) || 0) : 0,
       video_url: form.video_url.trim() || null,
       wallet_points: parseFloat(form.wallet_points) || 0,
     });
@@ -369,6 +371,8 @@ const SellingPartnerDashboard = () => {
       discount_rate: String(p.discount_rate), is_featured: p.is_featured,
       video_url: (p as any).video_url ?? "",
       wallet_points: String((p as any).wallet_points ?? 0),
+      featured_discount_type: (p as any).featured_discount_type ?? "amount",
+      featured_discount_value: String((p as any).featured_discount_value ?? 0),
     });
     setEditDialogOpen(true);
   };
@@ -392,6 +396,8 @@ const SellingPartnerDashboard = () => {
       image_url_2: editForm.image_url_2 || null,
       image_url_3: editForm.image_url_3 || null,
       is_featured: editForm.is_featured,
+      featured_discount_type: editForm.is_featured ? editForm.featured_discount_type : 'amount',
+      featured_discount_value: editForm.is_featured ? (parseFloat(editForm.featured_discount_value) || 0) : 0,
       video_url: editForm.video_url.trim() || null,
       wallet_points: parseFloat(editForm.wallet_points) || 0,
     }).eq("id", editProduct.id);
@@ -527,13 +533,27 @@ const SellingPartnerDashboard = () => {
                         <SelectContent>{assignedGodowns.map(g => <SelectItem key={g.id} value={g.id}>{g.name}</SelectItem>)}</SelectContent>
                       </Select>
                     </div>
-                    <div className="flex items-center gap-2 rounded-lg border p-3">
-                      <Star className="h-4 w-4 text-yellow-500" />
-                      <div className="flex-1">
-                        <Label className="text-sm font-medium">Featured Product</Label>
-                        <p className="text-xs text-muted-foreground">Requires admin approval to display</p>
+                    <div className="rounded-lg border p-3 space-y-3">
+                      <div className="flex items-center gap-2">
+                        <Star className="h-4 w-4 text-yellow-500" />
+                        <div className="flex-1">
+                          <Label className="text-sm font-medium">Featured Product</Label>
+                          <p className="text-xs text-muted-foreground">Requires admin approval to display</p>
+                        </div>
+                        <Switch checked={form.is_featured} onCheckedChange={v => setForm({ ...form, is_featured: v })} />
                       </div>
-                      <Switch checked={form.is_featured} onCheckedChange={v => setForm({ ...form, is_featured: v })} />
+                      {form.is_featured && (
+                        <div className="space-y-2 border-t pt-2">
+                          <Label className="text-xs font-medium text-muted-foreground">Featured Extra Discount</Label>
+                          <div className="flex gap-2">
+                            <select className="flex h-9 rounded-md border border-input bg-background px-2 py-1 text-sm w-32" value={form.featured_discount_type} onChange={e => setForm({ ...form, featured_discount_type: e.target.value })}>
+                              <option value="amount">₹ Amount</option>
+                              <option value="percentage">% Percentage</option>
+                            </select>
+                            <Input type="number" min="0" step="0.01" placeholder="Discount value" value={form.featured_discount_value} onChange={e => setForm({ ...form, featured_discount_value: e.target.value })} className="flex-1" />
+                          </div>
+                        </div>
+                      )}
                     </div>
                     {(() => {
                       const selectedCat = categories.find(c => c.name === form.category);
@@ -644,10 +664,24 @@ const SellingPartnerDashboard = () => {
                   <ImageUpload bucket="products" value={editForm.image_url_3} onChange={url => setEditForm({ ...editForm, image_url_3: url })} label="Image 3" />
                   <div><Label>Video URL</Label><Input value={editForm.video_url} onChange={e => setEditForm({ ...editForm, video_url: e.target.value })} placeholder="Paste YouTube or video link" /></div>
                   <div><Label>Wallet Points</Label><Input type="number" min="0" value={editForm.wallet_points} onChange={e => setEditForm({ ...editForm, wallet_points: e.target.value })} placeholder="Points earned per purchase" /></div>
-                   <div className="flex items-center gap-2 rounded-lg border p-3">
-                     <Star className="h-4 w-4 text-yellow-500" />
-                     <div className="flex-1"><Label className="text-sm font-medium">Featured Product</Label></div>
-                     <Switch checked={editForm.is_featured} onCheckedChange={v => setEditForm({ ...editForm, is_featured: v })} />
+                   <div className="rounded-lg border p-3 space-y-3">
+                     <div className="flex items-center gap-2">
+                       <Star className="h-4 w-4 text-yellow-500" />
+                       <div className="flex-1"><Label className="text-sm font-medium">Featured Product</Label></div>
+                       <Switch checked={editForm.is_featured} onCheckedChange={v => setEditForm({ ...editForm, is_featured: v })} />
+                     </div>
+                     {editForm.is_featured && (
+                       <div className="space-y-2 border-t pt-2">
+                         <Label className="text-xs font-medium text-muted-foreground">Featured Extra Discount</Label>
+                         <div className="flex gap-2">
+                           <select className="flex h-9 rounded-md border border-input bg-background px-2 py-1 text-sm w-32" value={editForm.featured_discount_type} onChange={e => setEditForm({ ...editForm, featured_discount_type: e.target.value })}>
+                             <option value="amount">₹ Amount</option>
+                             <option value="percentage">% Percentage</option>
+                           </select>
+                           <Input type="number" min="0" step="0.01" placeholder="Discount value" value={editForm.featured_discount_value} onChange={e => setEditForm({ ...editForm, featured_discount_value: e.target.value })} className="flex-1" />
+                         </div>
+                       </div>
+                     )}
                    </div>
                     {(() => {
                       const selectedCat = categories.find(c => c.name === editForm.category);

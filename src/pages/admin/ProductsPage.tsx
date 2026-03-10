@@ -12,7 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { usePermissions } from "@/hooks/usePermissions";
 import { useAuth } from "@/hooks/useAuth";
-import { Plus, Pencil, Trash2, ExternalLink, Clock, Store, CheckCircle, XCircle, Percent, Calculator } from "lucide-react";
+import { Plus, Pencil, Trash2, ExternalLink, Clock, Store, CheckCircle, XCircle, Percent, Calculator, Star } from "lucide-react";
 import ImageUpload from "@/components/admin/ImageUpload";
 import ProductVariants from "@/components/admin/ProductVariants";
 import { useNavigate } from "react-router-dom";
@@ -61,7 +61,7 @@ const sectionOptions = [
   { value: "sponsors", label: "Sponsors" },
 ];
 
-const emptyProduct = { name: "", description: "", price: 0, category: "", stock: 0, is_active: true, image_url: "", image_url_2: "", image_url_3: "", section: "", purchase_rate: 0, mrp: 0, discount_rate: 0, video_url: "", coming_soon: false, wallet_points: 0, margin_percentage: null as number | null };
+const emptyProduct = { name: "", description: "", price: 0, category: "", stock: 0, is_active: true, image_url: "", image_url_2: "", image_url_3: "", section: "", purchase_rate: 0, mrp: 0, discount_rate: 0, video_url: "", coming_soon: false, wallet_points: 0, margin_percentage: null as number | null, featured_discount_type: "amount", featured_discount_value: 0 };
 
 const ProductsPage = () => {
   const [products, setProducts] = useState<Product[]>([]);
@@ -72,7 +72,7 @@ const ProductsPage = () => {
   const [open, setOpen] = useState(false);
   const [sellerEditOpen, setSellerEditOpen] = useState(false);
   const [sellerEditId, setSellerEditId] = useState<string | null>(null);
-  const [sellerForm, setSellerForm] = useState({ name: "", description: "", price: 0, mrp: 0, purchase_rate: 0, discount_rate: 0, stock: 0, category: "", is_active: true, is_approved: false, is_featured: false, coming_soon: false, image_url: "", image_url_2: "", image_url_3: "", video_url: "", wallet_points: 0, margin_percentage: null as number | null });
+  const [sellerForm, setSellerForm] = useState({ name: "", description: "", price: 0, mrp: 0, purchase_rate: 0, discount_rate: 0, stock: 0, category: "", is_active: true, is_approved: false, is_featured: false, coming_soon: false, image_url: "", image_url_2: "", image_url_3: "", video_url: "", wallet_points: 0, margin_percentage: null as number | null, featured_discount_type: "amount", featured_discount_value: 0 });
   const [ownCategoryFilter, setOwnCategoryFilter] = useState("");
   const [sellerCategoryFilter, setSellerCategoryFilter] = useState("");
   const { hasPermission } = usePermissions();
@@ -218,6 +218,8 @@ const ProductsPage = () => {
       image_url_3: p.image_url_3 ?? "", video_url: p.video_url ?? "",
       wallet_points: (p as any).wallet_points ?? 0,
       margin_percentage: p.margin_percentage ?? null,
+      featured_discount_type: (p as any).featured_discount_type ?? "amount",
+      featured_discount_value: (p as any).featured_discount_value ?? 0,
     });
     setSellerEditId(p.id);
     setSellerEditOpen(true);
@@ -234,6 +236,8 @@ const ProductsPage = () => {
       coming_soon: sellerForm.coming_soon, image_url: sellerForm.image_url || null,
       image_url_2: sellerForm.image_url_2 || null, image_url_3: sellerForm.image_url_3 || null,
       video_url: sellerForm.video_url || null, wallet_points: sellerForm.wallet_points,
+      featured_discount_type: sellerForm.is_featured ? sellerForm.featured_discount_type : 'amount',
+      featured_discount_value: sellerForm.is_featured ? sellerForm.featured_discount_value : 0,
       // margin_percentage is NOT updated here — managed only via Platform Margin page
     }).eq("id", sellerEditId);
     if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); return; }
@@ -249,7 +253,9 @@ const ProductsPage = () => {
       purchase_rate: p.purchase_rate, mrp: p.mrp, discount_rate: p.discount_rate, 
       video_url: (p as any).video_url ?? "", coming_soon: (p as any).coming_soon ?? false, 
       wallet_points: (p as any).wallet_points ?? 0,
-      margin_percentage: p.margin_percentage ?? null
+      margin_percentage: p.margin_percentage ?? null,
+      featured_discount_type: (p as any).featured_discount_type ?? "amount",
+      featured_discount_value: (p as any).featured_discount_value ?? 0,
     });
     setEditId(p.id); setOpen(true);
   };
@@ -375,6 +381,19 @@ const ProductsPage = () => {
             <div className="flex items-center gap-2"><Switch checked={form.is_active} onCheckedChange={(v) => setForm({ ...form, is_active: v })} /><Label>Active</Label></div>
             <div className="flex items-center gap-2"><Switch checked={form.coming_soon} onCheckedChange={(v) => setForm({ ...form, coming_soon: v })} /><Label>Coming Soon</Label></div>
           </div>
+          {/* Featured Discount for admin own products */}
+          {form.section === "featured" && (
+            <div className="rounded-lg border border-yellow-200 bg-yellow-50 dark:border-yellow-900 dark:bg-yellow-900/20 p-3 space-y-2">
+              <Label className="text-sm font-medium flex items-center gap-2"><Star className="h-4 w-4 text-yellow-500" /> Featured Extra Discount</Label>
+              <div className="flex gap-2">
+                <select className="flex h-9 rounded-md border border-input bg-background px-2 py-1 text-sm w-32" value={form.featured_discount_type} onChange={e => setForm({ ...form, featured_discount_type: e.target.value })}>
+                  <option value="amount">₹ Amount</option>
+                  <option value="percentage">% Percentage</option>
+                </select>
+                <Input type="number" min="0" step="0.01" placeholder="Discount value" value={form.featured_discount_value} onChange={e => setForm({ ...form, featured_discount_value: +e.target.value })} className="flex-1" />
+              </div>
+            </div>
+          )}
           <div><Label>Wallet Points (earned by customer)</Label><Input type="number" value={form.wallet_points} onChange={(e) => setForm({ ...form, wallet_points: +e.target.value })} placeholder="0" /></div>
           {(() => {
             const selectedCat = categories.find(c => c.name === form.category);
@@ -650,6 +669,18 @@ const ProductsPage = () => {
               <div className="flex items-center gap-2"><Switch checked={sellerForm.is_featured} onCheckedChange={(v) => setSellerForm({ ...sellerForm, is_featured: v })} /><Label>Featured</Label></div>
               <div className="flex items-center gap-2"><Switch checked={sellerForm.coming_soon} onCheckedChange={(v) => setSellerForm({ ...sellerForm, coming_soon: v })} /><Label>Coming Soon</Label></div>
             </div>
+            {sellerForm.is_featured && (
+              <div className="rounded-lg border border-yellow-200 bg-yellow-50 dark:border-yellow-900 dark:bg-yellow-900/20 p-3 space-y-2">
+                <Label className="text-sm font-medium flex items-center gap-2"><Star className="h-4 w-4 text-yellow-500" /> Featured Extra Discount</Label>
+                <div className="flex gap-2">
+                  <select className="flex h-9 rounded-md border border-input bg-background px-2 py-1 text-sm w-32" value={sellerForm.featured_discount_type} onChange={e => setSellerForm({ ...sellerForm, featured_discount_type: e.target.value })}>
+                    <option value="amount">₹ Amount</option>
+                    <option value="percentage">% Percentage</option>
+                  </select>
+                  <Input type="number" min="0" step="0.01" placeholder="Discount value" value={sellerForm.featured_discount_value} onChange={e => setSellerForm({ ...sellerForm, featured_discount_value: +e.target.value })} className="flex-1" />
+                </div>
+              </div>
+            )}
             <div><Label>Wallet Points (earned by customer)</Label><Input type="number" value={sellerForm.wallet_points} onChange={(e) => setSellerForm({ ...sellerForm, wallet_points: +e.target.value })} placeholder="0" /></div>
             <Button className="w-full" onClick={handleSellerSave}>Save Changes</Button>
           </div>
