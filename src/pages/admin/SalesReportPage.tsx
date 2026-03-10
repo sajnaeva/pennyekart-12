@@ -160,9 +160,14 @@ const SalesReportPage = () => {
   // Get godown IDs for location filters
   const godownIdsForLocation = useMemo(() => {
     if (filterLocalBody !== "all" && filterWard !== "all") {
-      return godownWards
+      // Include godowns assigned to this specific ward AND godowns assigned to the entire local body
+      const fromWards = godownWards
         .filter(gw => gw.local_body_id === filterLocalBody && gw.ward_number === Number(filterWard))
         .map(gw => gw.godown_id);
+      const fromLB = godownLocalBodies
+        .filter(glb => glb.local_body_id === filterLocalBody)
+        .map(glb => glb.godown_id);
+      return [...new Set([...fromWards, ...fromLB])];
     }
     if (filterLocalBody !== "all") {
       const fromWards = godownWards.filter(gw => gw.local_body_id === filterLocalBody).map(gw => gw.godown_id);
