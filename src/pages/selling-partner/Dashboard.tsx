@@ -347,6 +347,8 @@ const SellingPartnerDashboard = () => {
       image_url_2: form.image_url_2 || null,
       image_url_3: form.image_url_3 || null,
       is_featured: form.is_featured,
+      featured_discount_type: form.is_featured ? form.featured_discount_type : 'amount',
+      featured_discount_value: form.is_featured ? (parseFloat(form.featured_discount_value) || 0) : 0,
       video_url: form.video_url.trim() || null,
       wallet_points: parseFloat(form.wallet_points) || 0,
     });
