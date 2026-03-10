@@ -30,6 +30,7 @@ const navItems = [
   { label: "Wallets", icon: Wallet, path: "/admin/wallets", perm: "read_users" },
   { label: "Platform Margin", icon: Percent, path: "/admin/platform-margin", perm: "read_products" },
   { label: "Penny Prime", icon: Handshake, path: "/admin/penny-prime", perm: "read_orders" },
+  { label: "Sales Report", icon: BarChart3, path: "/admin/sales-report", perm: "read_orders" },
   { label: "Reports", icon: BarChart3, path: "/admin/reports", perm: "read_orders" },
 ];
 
