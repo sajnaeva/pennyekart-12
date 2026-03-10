@@ -43,7 +43,7 @@ interface SellerProduct {
 }
 
 interface Godown { id: string; name: string; }
-interface Category { id: string; name: string; category_type: string; variation_type: string | null; }
+interface Category { id: string; name: string; category_type: string; variation_type: string | null; margin_percentage: number | null; }
 
 interface Order {
   id: string;
@@ -164,8 +164,8 @@ const SellingPartnerDashboard = () => {
   };
 
   const fetchCategories = async () => {
-    const { data } = await supabase.from("categories").select("id, name, category_type, variation_type").eq("is_active", true).order("sort_order");
-    if (data) setCategories(data as Category[]);
+    const { data } = await supabase.from("categories").select("id, name, category_type, variation_type, margin_percentage").eq("is_active", true).order("sort_order");
+    if (data) setCategories(data as any[]);
   };
 
   const fetchOrders = async (_myProducts: SellerProduct[]) => {
@@ -311,19 +311,35 @@ const SellingPartnerDashboard = () => {
     init();
   }, [user, profile]);
 
+  // Get category margin for auto-price calculation
+  const getCategoryMargin = (catName: string) => {
+    const cat = categories.find(c => c.name === catName);
+    return (cat as any)?.margin_percentage ?? 0;
+  };
+
+  const calcPriceFromMargin = (purchaseRate: number, mrp: number, categoryName: string) => {
+    const margin = getCategoryMargin(categoryName);
+    const price = purchaseRate > 0 && margin > 0
+      ? Math.round(purchaseRate * (1 + margin / 100) * 100) / 100
+      : mrp;
+    const discount = Math.max(0, mrp - price);
+    return { price, discount };
+  };
+
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
     const mrp = parseFloat(form.mrp) || 0;
-    const discountRate = parseFloat(form.discount_rate) || 0;
+    const purchaseRate = parseFloat(form.purchase_rate) || 0;
+    const { price, discount } = calcPriceFromMargin(purchaseRate, mrp, form.category);
     const godownId = form.area_godown_id || (assignedGodowns.length === 1 ? assignedGodowns[0].id : null);
     const { error } = await supabase.from("seller_products").insert({
       seller_id: user.id,
       name: form.name.trim(),
       description: form.description.trim() || null,
-      price: mrp - discountRate,
-      purchase_rate: parseFloat(form.purchase_rate) || 0,
-      mrp, discount_rate: discountRate,
+      price,
+      purchase_rate: purchaseRate,
+      mrp, discount_rate: discount,
       category: form.category.trim() || null,
       stock: parseInt(form.stock) || 0,
       area_godown_id: godownId,
@@ -361,13 +377,14 @@ const SellingPartnerDashboard = () => {
     e.preventDefault();
     if (!editProduct) return;
     const mrp = parseFloat(editForm.mrp) || 0;
-    const discountRate = parseFloat(editForm.discount_rate) || 0;
+    const purchaseRate = parseFloat(editForm.purchase_rate) || 0;
+    const { price, discount } = calcPriceFromMargin(purchaseRate, mrp, editForm.category);
     const { error } = await supabase.from("seller_products").update({
       name: editForm.name.trim(),
       description: editForm.description.trim() || null,
-      price: mrp - discountRate,
-      purchase_rate: parseFloat(editForm.purchase_rate) || 0,
-      mrp, discount_rate: discountRate,
+      price,
+      purchase_rate: purchaseRate,
+      mrp, discount_rate: discount,
       category: editForm.category.trim() || null,
       stock: parseInt(editForm.stock) || 0,
       area_godown_id: editForm.area_godown_id || editProduct.area_godown_id,
@@ -471,13 +488,21 @@ const SellingPartnerDashboard = () => {
                     <div><Label>Description</Label><Textarea value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} /></div>
                     <div className="grid grid-cols-3 gap-3">
                       <div><Label>Purchase Rate</Label><Input type="number" min="0" step="0.01" value={form.purchase_rate} onChange={e => setForm({ ...form, purchase_rate: e.target.value })} /></div>
-                      <div><Label>MRP</Label><Input type="number" min="0" step="0.01" value={form.mrp} onChange={e => { const m = e.target.value; const dr = parseFloat(form.discount_rate) || 0; setForm({ ...form, mrp: m, price: String((parseFloat(m) || 0) - dr) }); }} required /></div>
-                      <div><Label>Discount Rate</Label><Input type="number" min="0" step="0.01" value={form.discount_rate} onChange={e => { const dr = e.target.value; const m = parseFloat(form.mrp) || 0; setForm({ ...form, discount_rate: dr, price: String(m - (parseFloat(dr) || 0)) }); }} /></div>
-                    </div>
-                    <div className="grid grid-cols-2 gap-3">
-                      <div><Label>Selling Price</Label><Input type="number" value={form.price} onChange={e => setForm({ ...form, price: e.target.value })} /></div>
+                      <div><Label>MRP</Label><Input type="number" min="0" step="0.01" value={form.mrp} onChange={e => setForm({ ...form, mrp: e.target.value })} required /></div>
                       <div><Label>Stock</Label><Input type="number" min="0" value={form.stock} onChange={e => setForm({ ...form, stock: e.target.value })} required /></div>
                     </div>
+                    {(() => {
+                      const pr = parseFloat(form.purchase_rate) || 0;
+                      const m = parseFloat(form.mrp) || 0;
+                      const margin = getCategoryMargin(form.category);
+                      const { price, discount } = calcPriceFromMargin(pr, m, form.category);
+                      return (
+                        <div className="rounded-lg border bg-muted/30 p-3 text-sm space-y-1">
+                          <p>Category Margin: <span className="font-semibold text-primary">{margin}%</span></p>
+                          <p>Auto Price: <span className="font-semibold">₹{price.toFixed(2)}</span> | Discount: <span className="font-semibold">₹{discount.toFixed(2)}</span></p>
+                        </div>
+                      );
+                    })()}
                     <div>
                       <Label>Category</Label>
                       <select className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" value={form.category} onChange={e => setForm({ ...form, category: e.target.value })}>
@@ -587,13 +612,21 @@ const SellingPartnerDashboard = () => {
                   <div><Label>Description</Label><Textarea value={editForm.description} onChange={e => setEditForm({ ...editForm, description: e.target.value })} /></div>
                   <div className="grid grid-cols-3 gap-3">
                     <div><Label>Purchase Rate</Label><Input type="number" min="0" step="0.01" value={editForm.purchase_rate} onChange={e => setEditForm({ ...editForm, purchase_rate: e.target.value })} /></div>
-                    <div><Label>MRP</Label><Input type="number" min="0" step="0.01" value={editForm.mrp} onChange={e => { const m = e.target.value; const dr = parseFloat(editForm.discount_rate) || 0; setEditForm({ ...editForm, mrp: m, price: String((parseFloat(m) || 0) - dr) }); }} required /></div>
-                    <div><Label>Discount Rate</Label><Input type="number" min="0" step="0.01" value={editForm.discount_rate} onChange={e => { const dr = e.target.value; const m = parseFloat(editForm.mrp) || 0; setEditForm({ ...editForm, discount_rate: dr, price: String(m - (parseFloat(dr) || 0)) }); }} /></div>
-                  </div>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div><Label>Selling Price</Label><Input type="number" value={editForm.price} onChange={e => setEditForm({ ...editForm, price: e.target.value })} /></div>
+                    <div><Label>MRP</Label><Input type="number" min="0" step="0.01" value={editForm.mrp} onChange={e => setEditForm({ ...editForm, mrp: e.target.value })} required /></div>
                     <div><Label>Stock</Label><Input type="number" min="0" value={editForm.stock} onChange={e => setEditForm({ ...editForm, stock: e.target.value })} /></div>
                   </div>
+                  {(() => {
+                    const pr = parseFloat(editForm.purchase_rate) || 0;
+                    const m = parseFloat(editForm.mrp) || 0;
+                    const margin = getCategoryMargin(editForm.category);
+                    const { price, discount } = calcPriceFromMargin(pr, m, editForm.category);
+                    return (
+                      <div className="rounded-lg border bg-muted/30 p-3 text-sm space-y-1">
+                        <p>Category Margin: <span className="font-semibold text-primary">{margin}%</span></p>
+                        <p>Auto Price: <span className="font-semibold">₹{price.toFixed(2)}</span> | Discount: <span className="font-semibold">₹{discount.toFixed(2)}</span></p>
+                      </div>
+                    );
+                  })()}
                   <div>
                     <Label>Category</Label>
                     <select className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" value={editForm.category} onChange={e => setEditForm({ ...editForm, category: e.target.value })}>
