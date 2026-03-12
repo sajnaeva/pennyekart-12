@@ -646,7 +646,7 @@ const CustomerList = ({ customers, orderSummaries, walletSummaries, onRefresh }:
               const sh = searchHistories.get(c.user_id);
               return (
                 <TableRow key={c.id} className={c.is_blocked ? "bg-destructive/5" : undefined}>
-                  <TableCell className="text-muted-foreground">{i + 1}</TableCell>
+                  <TableCell className="text-muted-foreground">{(currentPage - 1) * pageSize + i + 1}</TableCell>
                   <TableCell className="font-medium">
                     <div className="flex items-center gap-1.5">
                       {c.is_blocked && <Ban className="h-3.5 w-3.5 text-destructive" />}
