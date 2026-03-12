@@ -531,6 +531,7 @@ const ReportsPage = () => {
           <TabsTrigger value="delivery">Delivery</TabsTrigger>
           <TabsTrigger value="stock">Stock</TabsTrigger>
           <TabsTrigger value="geography">Geography</TabsTrigger>
+          <TabsTrigger value="search">Search</TabsTrigger>
         </TabsList>
 
         {/* ── OVERVIEW ── */}
