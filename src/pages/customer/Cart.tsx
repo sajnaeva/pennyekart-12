@@ -84,11 +84,15 @@ const Cart = () => {
   const totalDiscount = totalMrp - totalPrice;
   const platformFee = items.length > 0 ? 7 : 0;
   const couponDiscount = appliedCoupon?.discount ?? 0;
-  const orderSubtotal = totalPrice + platformFee - couponDiscount;
+  const preDeliverySubtotal = totalPrice + platformFee - couponDiscount;
+  
+  const { totalCharge: deliveryCharge, isFreeDelivery, freeDeliveryThreshold, amountToFreeDelivery, breakdown: deliveryBreakdown } = useDeliveryCharge(items, totalPrice);
+  
+  const orderSubtotal = preDeliverySubtotal + deliveryCharge;
   const canUseWallet = walletBalance > 0 && orderSubtotal >= walletMinUsage;
   const maxRedeemable = walletMaxRedeem !== null ? Math.min(walletBalance, walletMaxRedeem) : walletBalance;
   const walletDeduction = useWallet && canUseWallet ? Math.min(maxRedeemable, orderSubtotal) : 0;
-  const finalAmount = totalPrice + platformFee - couponDiscount - walletDeduction;
+  const finalAmount = preDeliverySubtotal + deliveryCharge - walletDeduction;
   const hasComingSoonItems = items.some(i => i.coming_soon);
 
   const handleApplyCoupon = async () => {
