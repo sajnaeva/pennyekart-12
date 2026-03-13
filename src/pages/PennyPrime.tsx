@@ -221,6 +221,7 @@ const PennyPrime = () => {
       price: p.price,
       mrp: p.mrp,
       image: p.image_url || "/placeholder.svg",
+      category: (p as any).category || undefined,
       source: "seller_product",
       seller_id: coupon.seller_id,
     });
