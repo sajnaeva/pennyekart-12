@@ -138,6 +138,7 @@ const FlashSaleDetail = () => {
               product_name: p.name,
               product_image: p.image_url,
               product_description: p.description,
+              product_category: (p as any).category || null,
               source: "seller_product",
               actual_product_id: item.seller_product_id,
             });
