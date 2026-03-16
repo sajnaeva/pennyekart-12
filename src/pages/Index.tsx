@@ -280,6 +280,8 @@ const Index = () => {
         rewards={[{ amount: signupRewardAmount, desc: "Signup bonus credited to your wallet" }]}
         totalAmount={signupRewardAmount}
       />
+
+      <OfferFlashPopup />
     </div>
   );
 };

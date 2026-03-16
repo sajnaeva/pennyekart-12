@@ -440,7 +440,11 @@ const OffersPage = () => {
         </CardContent>
       </Card>
 
-      <FlashSaleManager />
+      <FlashScreenManager />
+
+      <div className="mt-6">
+        <FlashSaleManager />
+      </div>
 
       <div className="space-y-6 mt-6">
         {grouped.map((section) => {
