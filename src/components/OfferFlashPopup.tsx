@@ -44,7 +44,7 @@ const fetchPopupSettings = async (): Promise<PopupSettings> => {
 
 const OfferFlashPopup = () => {
   const [open, setOpen] = useState(false);
-  const [current, setCurrent] = useState(0);
+  const [current, setCurrent] = useState(-1);
   const [countdown, setCountdown] = useState<number | null>(null);
   const navigate = useNavigate();
   const autoCloseRef = useRef<ReturnType<typeof setTimeout> | null>(null);
