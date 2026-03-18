@@ -366,6 +366,7 @@ const SellingPartnerDashboard = () => {
   };
 
   const openEdit = (p: SellerProduct) => {
+    const isRounded = p.price === Math.round(p.price);
     setEditProduct(p);
     setEditForm({
       name: p.name, description: p.description ?? "", price: String(p.price),
@@ -378,6 +379,7 @@ const SellingPartnerDashboard = () => {
       wallet_points: String((p as any).wallet_points ?? 0),
       featured_discount_type: (p as any).featured_discount_type ?? "amount",
       featured_discount_value: String((p as any).featured_discount_value ?? 0),
+      round_off_price: isRounded,
     });
     setEditDialogOpen(true);
   };
