@@ -111,9 +111,10 @@ const ProductsPage = () => {
   }, [categories]);
 
   // Calculate selling price from purchase rate + margin
-  const calculateSellingPrice = useCallback((purchaseRate: number, marginPercentage: number, roundOff = true) => {
+  const calculateSellingPrice = useCallback((purchaseRate: number, marginPercentage: number, roundOff = true, manualRoundOff = 0) => {
     const raw = purchaseRate * (1 + marginPercentage / 100);
-    return roundOff ? Math.round(raw) : Math.round(raw * 100) / 100;
+    const base = roundOff ? Math.round(raw) : Math.round(raw * 100) / 100;
+    return base + manualRoundOff;
   }, []);
 
   // Calculate discount amount from MRP - selling price
