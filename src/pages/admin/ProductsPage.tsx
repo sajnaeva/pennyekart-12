@@ -159,11 +159,23 @@ const ProductsPage = () => {
   const handleRoundOffToggle = (roundOff: boolean, currentForm: typeof form, setFormFn: typeof setForm) => {
     const margin = currentForm.margin_percentage ?? getCategoryMargin(currentForm.category);
     if (currentForm.purchase_rate > 0) {
-      const newPrice = calculateSellingPrice(currentForm.purchase_rate, margin, roundOff);
+      const newPrice = calculateSellingPrice(currentForm.purchase_rate, margin, roundOff, currentForm.manual_round_off);
       const newDiscount = calculateDiscount(currentForm.mrp, newPrice);
       setFormFn({ ...currentForm, round_off_price: roundOff, price: newPrice, discount_rate: newDiscount });
     } else {
       setFormFn({ ...currentForm, round_off_price: roundOff });
+    }
+  };
+
+  // Handle manual round off change - adjust selling price
+  const handleManualRoundOffChange = (manualRoundOff: number, currentForm: typeof form, setFormFn: typeof setForm) => {
+    const margin = currentForm.margin_percentage ?? getCategoryMargin(currentForm.category);
+    if (currentForm.purchase_rate > 0) {
+      const newPrice = calculateSellingPrice(currentForm.purchase_rate, margin, currentForm.round_off_price, manualRoundOff);
+      const newDiscount = calculateDiscount(currentForm.mrp, newPrice);
+      setFormFn({ ...currentForm, manual_round_off: manualRoundOff, price: newPrice, discount_rate: newDiscount });
+    } else {
+      setFormFn({ ...currentForm, manual_round_off: manualRoundOff });
     }
   };
 
