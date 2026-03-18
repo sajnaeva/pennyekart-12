@@ -333,7 +333,7 @@ const SellingPartnerDashboard = () => {
     if (!user) return;
     const mrp = parseFloat(form.mrp) || 0;
     const purchaseRate = parseFloat(form.purchase_rate) || 0;
-    const { price, discount } = calcPriceFromMargin(purchaseRate, mrp, form.category);
+    const { price, discount } = calcPriceFromMargin(purchaseRate, mrp, form.category, form.round_off_price);
     const godownId = form.area_godown_id || (assignedGodowns.length === 1 ? assignedGodowns[0].id : null);
     // Auto-disable featured if no discount value
     const featuredDiscountVal = parseFloat(form.featured_discount_value) || 0;
