@@ -176,11 +176,12 @@ const ProductsPage = () => {
   };
 
   const handleSave = async () => {
+    const { round_off_price, ...dbForm } = form;
     if (editId) {
-      const { error } = await supabase.from("products").update({ ...form, updated_by: user?.id }).eq("id", editId);
+      const { error } = await supabase.from("products").update({ ...dbForm, updated_by: user?.id }).eq("id", editId);
       if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); return; }
     } else {
-      const { error } = await supabase.from("products").insert({ ...form, created_by: user?.id });
+      const { error } = await supabase.from("products").insert({ ...dbForm, created_by: user?.id });
       if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); return; }
     }
     setOpen(false); setForm(emptyProduct); setEditId(null); fetchProducts();
