@@ -79,6 +79,7 @@ const emptyForm = {
   area_godown_id: "", image_url: "", image_url_2: "", image_url_3: "",
   purchase_rate: "", mrp: "", discount_rate: "", is_featured: false, video_url: "",
   wallet_points: "", featured_discount_type: "amount" as string, featured_discount_value: "",
+  round_off_price: true,
 };
 
 const SellingPartnerDashboard = () => {
