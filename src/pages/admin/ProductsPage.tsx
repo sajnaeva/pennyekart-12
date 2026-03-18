@@ -189,7 +189,7 @@ const ProductsPage = () => {
   };
 
   const handleSave = async () => {
-    const { round_off_price, ...dbForm } = form;
+    const { round_off_price, manual_round_off, ...dbForm } = form;
     if (editId) {
       const { error } = await supabase.from("products").update({ ...dbForm, updated_by: user?.id }).eq("id", editId);
       if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); return; }
