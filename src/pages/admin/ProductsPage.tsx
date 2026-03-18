@@ -61,7 +61,7 @@ const sectionOptions = [
   { value: "sponsors", label: "Sponsors" },
 ];
 
-const emptyProduct = { name: "", description: "", price: 0, category: "", stock: 0, is_active: true, image_url: "", image_url_2: "", image_url_3: "", section: "", purchase_rate: 0, mrp: 0, discount_rate: 0, video_url: "", coming_soon: false, wallet_points: 0, margin_percentage: null as number | null, featured_discount_type: "amount", featured_discount_value: 0, round_off_price: true };
+const emptyProduct = { name: "", description: "", price: 0, category: "", stock: 0, is_active: true, image_url: "", image_url_2: "", image_url_3: "", section: "", purchase_rate: 0, mrp: 0, discount_rate: 0, video_url: "", coming_soon: false, wallet_points: 0, margin_percentage: null as number | null, featured_discount_type: "amount", featured_discount_value: 0, round_off_price: true, manual_round_off: 0 };
 
 const ProductsPage = () => {
   const [products, setProducts] = useState<Product[]>([]);
@@ -72,7 +72,7 @@ const ProductsPage = () => {
   const [open, setOpen] = useState(false);
   const [sellerEditOpen, setSellerEditOpen] = useState(false);
   const [sellerEditId, setSellerEditId] = useState<string | null>(null);
-  const [sellerForm, setSellerForm] = useState({ name: "", description: "", price: 0, mrp: 0, purchase_rate: 0, discount_rate: 0, stock: 0, category: "", is_active: true, is_approved: false, is_featured: false, coming_soon: false, image_url: "", image_url_2: "", image_url_3: "", video_url: "", wallet_points: 0, margin_percentage: null as number | null, featured_discount_type: "amount", featured_discount_value: 0, round_off_price: true });
+  const [sellerForm, setSellerForm] = useState({ name: "", description: "", price: 0, mrp: 0, purchase_rate: 0, discount_rate: 0, stock: 0, category: "", is_active: true, is_approved: false, is_featured: false, coming_soon: false, image_url: "", image_url_2: "", image_url_3: "", video_url: "", wallet_points: 0, margin_percentage: null as number | null, featured_discount_type: "amount", featured_discount_value: 0, round_off_price: true, manual_round_off: 0 });
   const [ownCategoryFilter, setOwnCategoryFilter] = useState("");
   const [sellerCategoryFilter, setSellerCategoryFilter] = useState("");
   const { hasPermission } = usePermissions();
@@ -111,9 +111,10 @@ const ProductsPage = () => {
   }, [categories]);
 
   // Calculate selling price from purchase rate + margin
-  const calculateSellingPrice = useCallback((purchaseRate: number, marginPercentage: number, roundOff = true) => {
+  const calculateSellingPrice = useCallback((purchaseRate: number, marginPercentage: number, roundOff = true, manualRoundOff = 0) => {
     const raw = purchaseRate * (1 + marginPercentage / 100);
-    return roundOff ? Math.round(raw) : Math.round(raw * 100) / 100;
+    const base = roundOff ? Math.round(raw) : Math.round(raw * 100) / 100;
+    return base + manualRoundOff;
   }, []);
 
   // Calculate discount amount from MRP - selling price
@@ -124,14 +125,14 @@ const ProductsPage = () => {
   // Handle purchase rate change - auto-calculate selling price
   const handlePurchaseRateChange = (purchaseRate: number, currentForm: typeof form, setFormFn: typeof setForm) => {
     const margin = currentForm.margin_percentage ?? getCategoryMargin(currentForm.category);
-    const newPrice = calculateSellingPrice(purchaseRate, margin, currentForm.round_off_price);
+    const newPrice = calculateSellingPrice(purchaseRate, margin, currentForm.round_off_price, currentForm.manual_round_off);
     const newDiscount = calculateDiscount(currentForm.mrp, newPrice);
     setFormFn({ ...currentForm, purchase_rate: purchaseRate, price: newPrice, discount_rate: newDiscount });
   };
 
   // Handle margin change - auto-calculate selling price
   const handleMarginChange = (marginPercentage: number, currentForm: typeof form, setFormFn: typeof setForm) => {
-    const newPrice = calculateSellingPrice(currentForm.purchase_rate, marginPercentage, currentForm.round_off_price);
+    const newPrice = calculateSellingPrice(currentForm.purchase_rate, marginPercentage, currentForm.round_off_price, currentForm.manual_round_off);
     const newDiscount = calculateDiscount(currentForm.mrp, newPrice);
     setFormFn({ ...currentForm, margin_percentage: marginPercentage, price: newPrice, discount_rate: newDiscount });
   };
@@ -158,7 +159,7 @@ const ProductsPage = () => {
   const handleRoundOffToggle = (roundOff: boolean, currentForm: typeof form, setFormFn: typeof setForm) => {
     const margin = currentForm.margin_percentage ?? getCategoryMargin(currentForm.category);
     if (currentForm.purchase_rate > 0) {
-      const newPrice = calculateSellingPrice(currentForm.purchase_rate, margin, roundOff);
+      const newPrice = calculateSellingPrice(currentForm.purchase_rate, margin, roundOff, currentForm.manual_round_off);
       const newDiscount = calculateDiscount(currentForm.mrp, newPrice);
       setFormFn({ ...currentForm, round_off_price: roundOff, price: newPrice, discount_rate: newDiscount });
     } else {
@@ -166,17 +167,29 @@ const ProductsPage = () => {
     }
   };
 
+  // Handle manual round off change - adjust selling price
+  const handleManualRoundOffChange = (manualRoundOff: number, currentForm: typeof form, setFormFn: typeof setForm) => {
+    const margin = currentForm.margin_percentage ?? getCategoryMargin(currentForm.category);
+    if (currentForm.purchase_rate > 0) {
+      const newPrice = calculateSellingPrice(currentForm.purchase_rate, margin, currentForm.round_off_price, manualRoundOff);
+      const newDiscount = calculateDiscount(currentForm.mrp, newPrice);
+      setFormFn({ ...currentForm, manual_round_off: manualRoundOff, price: newPrice, discount_rate: newDiscount });
+    } else {
+      setFormFn({ ...currentForm, manual_round_off: manualRoundOff });
+    }
+  };
+
   // Handle category change - apply category margin if no product-specific margin
   const handleCategoryChange = (categoryName: string, currentForm: typeof form, setFormFn: typeof setForm) => {
     const categoryMargin = getCategoryMargin(categoryName);
     const effectiveMargin = currentForm.margin_percentage ?? categoryMargin;
-    const newPrice = currentForm.purchase_rate > 0 ? calculateSellingPrice(currentForm.purchase_rate, effectiveMargin, currentForm.round_off_price) : currentForm.price;
+    const newPrice = currentForm.purchase_rate > 0 ? calculateSellingPrice(currentForm.purchase_rate, effectiveMargin, currentForm.round_off_price, currentForm.manual_round_off) : currentForm.price;
     const newDiscount = calculateDiscount(currentForm.mrp, newPrice);
     setFormFn({ ...currentForm, category: categoryName, price: newPrice, discount_rate: newDiscount });
   };
 
   const handleSave = async () => {
-    const { round_off_price, ...dbForm } = form;
+    const { round_off_price, manual_round_off, ...dbForm } = form;
     if (editId) {
       const { error } = await supabase.from("products").update({ ...dbForm, updated_by: user?.id }).eq("id", editId);
       if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); return; }
@@ -236,6 +249,7 @@ const ProductsPage = () => {
       featured_discount_type: (p as any).featured_discount_type ?? "amount",
       featured_discount_value: (p as any).featured_discount_value ?? 0,
       round_off_price: isRounded,
+      manual_round_off: 0,
     });
     setSellerEditId(p.id);
     setSellerEditOpen(true);
@@ -275,6 +289,7 @@ const ProductsPage = () => {
       featured_discount_type: (p as any).featured_discount_type ?? "amount",
       featured_discount_value: (p as any).featured_discount_value ?? 0,
       round_off_price: isRounded,
+      manual_round_off: 0,
     });
     setEditId(p.id); setOpen(true);
   };
@@ -341,7 +356,7 @@ const ProductsPage = () => {
                 } else {
                   // Reset to category margin
                   const catMargin = getCategoryMargin(form.category);
-                  const newPrice = calculateSellingPrice(form.purchase_rate, catMargin, form.round_off_price);
+                  const newPrice = calculateSellingPrice(form.purchase_rate, catMargin, form.round_off_price, form.manual_round_off);
                   setForm({ ...form, margin_percentage: null, price: newPrice, discount_rate: calculateDiscount(form.mrp, newPrice) });
                 }
               }}
@@ -371,10 +386,14 @@ const ProductsPage = () => {
                 <Input type="number" value={form.price} onChange={(e) => handlePriceChange(+e.target.value, form, setForm)} />
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-3 gap-3">
               <div>
                 <Label className="text-xs">MRP</Label>
                 <Input type="number" value={form.mrp} onChange={(e) => handleMrpChange(+e.target.value, form, setForm)} />
+              </div>
+              <div>
+                <Label className="text-xs">Manual Round Off (±₹)</Label>
+                <Input type="number" value={form.manual_round_off} onChange={(e) => handleManualRoundOffChange(+e.target.value, form, setForm)} placeholder="0" />
               </div>
               <div>
                 <Label className="text-xs">Discount Amount (auto)</Label>
@@ -671,10 +690,14 @@ const ProductsPage = () => {
                   <Input type="number" value={sellerForm.price} onChange={(e) => handlePriceChange(+e.target.value, sellerForm as any, setSellerForm as any)} />
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-3 gap-3">
                 <div>
                   <Label className="text-xs">MRP</Label>
                   <Input type="number" value={sellerForm.mrp} onChange={(e) => handleMrpChange(+e.target.value, sellerForm as any, setSellerForm as any)} />
+                </div>
+                <div>
+                  <Label className="text-xs">Manual Round Off (±₹)</Label>
+                  <Input type="number" value={sellerForm.manual_round_off} onChange={(e) => handleManualRoundOffChange(+e.target.value, sellerForm as any, setSellerForm as any)} placeholder="0" />
                 </div>
                 <div>
                   <Label className="text-xs">Discount Amount (auto)</Label>
