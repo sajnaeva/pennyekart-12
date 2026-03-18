@@ -157,6 +157,46 @@ const Cart = () => {
     }
   };
 
+  // Auto-apply coupon from URL (e.g. /cart?coupon=CODE)
+  const urlCouponApplied = useRef(false);
+  useEffect(() => {
+    if (couponFromUrl.current && !urlCouponApplied.current && !appliedCoupon && items.length > 0) {
+      urlCouponApplied.current = true;
+      setCouponCode(couponFromUrl.current);
+      searchParams.delete("coupon");
+      setSearchParams(searchParams, { replace: true });
+      // Apply after state update
+      const code = couponFromUrl.current;
+      couponFromUrl.current = "";
+      (async () => {
+        setCouponLoading(true);
+        try {
+          const { data: collab } = await supabase
+            .from("penny_prime_collabs")
+            .select("id, collab_code, coupon_id")
+            .eq("collab_code", code)
+            .maybeSingle();
+          if (!collab) { setCouponError("Invalid or expired coupon code"); return; }
+          const { data: coupon } = await supabase
+            .from("penny_prime_coupons")
+            .select("customer_discount_type, customer_discount_value, is_active, product_id")
+            .eq("id", collab.coupon_id)
+            .maybeSingle();
+          if (!coupon || !coupon.is_active) { setCouponError("This coupon is no longer active"); return; }
+          const matchingItem = items.find(i => i.id === coupon.product_id);
+          if (!matchingItem) { setCouponError("This coupon is only valid for a specific product not in your cart"); return; }
+          const productTotal = matchingItem.price * matchingItem.quantity;
+          let discount = coupon.customer_discount_type === "amount"
+            ? coupon.customer_discount_value
+            : (productTotal * coupon.customer_discount_value) / 100;
+          discount = Math.min(discount, productTotal);
+          setAppliedCoupon({ code, discount, collabId: collab.id });
+        } catch { setCouponError("Failed to validate coupon"); }
+        finally { setCouponLoading(false); }
+      })();
+    }
+  }, [items, appliedCoupon]);
+
   const handleRemoveCoupon = () => {
     setAppliedCoupon(null);
     setCouponCode("");
