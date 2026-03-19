@@ -66,6 +66,7 @@ const emptyProduct = { name: "", description: "", price: 0, category: "", stock:
 const ProductsPage = () => {
   const [products, setProducts] = useState<Product[]>([]);
   const [sellerProducts, setSellerProducts] = useState<SellerProduct[]>([]);
+  const [sellerProfiles, setSellerProfiles] = useState<{ user_id: string; company_name: string | null; full_name: string | null }[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [form, setForm] = useState(emptyProduct);
   const [editId, setEditId] = useState<string | null>(null);
