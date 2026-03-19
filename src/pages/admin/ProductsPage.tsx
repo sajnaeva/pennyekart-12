@@ -12,7 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { usePermissions } from "@/hooks/usePermissions";
 import { useAuth } from "@/hooks/useAuth";
-import { Plus, Pencil, Trash2, ExternalLink, Clock, Store, CheckCircle, XCircle, Percent, Calculator, Star, Search } from "lucide-react";
+import { Plus, Pencil, Trash2, ExternalLink, Clock, Store, CheckCircle, XCircle, Percent, Calculator, Star, Search, Eye } from "lucide-react";
 import ImageUpload from "@/components/admin/ImageUpload";
 import ProductVariants from "@/components/admin/ProductVariants";
 import { useNavigate } from "react-router-dom";
@@ -77,6 +77,8 @@ const ProductsPage = () => {
   const [sellerCategoryFilter, setSellerCategoryFilter] = useState("");
   const [ownSearch, setOwnSearch] = useState("");
   const [sellerSearch, setSellerSearch] = useState("");
+  const [detailProduct, setDetailProduct] = useState<(Product | SellerProduct) | null>(null);
+  const [detailType, setDetailType] = useState<"own" | "seller">("own");
   const { hasPermission } = usePermissions();
   const { user } = useAuth();
   const { toast } = useToast();
@@ -535,6 +537,7 @@ const ProductsPage = () => {
                     </TableCell>
                     <TableCell>
                       <div className="flex gap-1">
+                        <Button variant="ghost" size="sm" onClick={() => { setDetailProduct(p); setDetailType("own"); }}><Eye className="h-3.5 w-3.5" /></Button>
                         {hasPermission("update_products") && <Button variant="ghost" size="sm" onClick={() => openEdit(p)}><Pencil className="h-3.5 w-3.5" /></Button>}
                         {hasPermission("delete_products") && <Button variant="ghost" size="sm" onClick={() => handleDelete(p.id)}><Trash2 className="h-3.5 w-3.5" /></Button>}
                       </div>
@@ -602,6 +605,7 @@ const ProductsPage = () => {
                     </TableCell>
                     <TableCell>
                       <div className="flex gap-1">
+                        <Button variant="ghost" size="sm" onClick={() => { setDetailProduct(p); setDetailType("seller"); }}><Eye className="h-3.5 w-3.5" /></Button>
                         <Button variant="ghost" size="sm" onClick={() => openSellerEdit(p)}>
                           <Pencil className="h-3.5 w-3.5" />
                         </Button>
@@ -627,6 +631,101 @@ const ProductsPage = () => {
           </div>
         </TabsContent>
       </Tabs>
+
+      {/* Product Detail Dialog */}
+      <Dialog open={!!detailProduct} onOpenChange={(v) => { if (!v) setDetailProduct(null); }}>
+        <DialogContent className="max-h-[85vh] flex flex-col max-w-[95vw] sm:max-w-lg">
+          <DialogHeader><DialogTitle>Product Details</DialogTitle></DialogHeader>
+          {detailProduct && (
+            <div className="space-y-4 overflow-y-auto pr-2 flex-1">
+              {/* Images */}
+              <div className="flex gap-2 flex-wrap">
+                {[detailProduct.image_url, detailProduct.image_url_2, detailProduct.image_url_3].filter(Boolean).map((url, i) => (
+                  <img key={i} src={url!} alt={`Product image ${i + 1}`} className="h-24 w-24 rounded-lg object-cover border" />
+                ))}
+                {![detailProduct.image_url, detailProduct.image_url_2, detailProduct.image_url_3].some(Boolean) && (
+                  <div className="h-24 w-24 rounded-lg bg-muted flex items-center justify-center text-muted-foreground text-xs">No image</div>
+                )}
+              </div>
+
+              {/* Name & Description */}
+              <div>
+                <h3 className="text-lg font-semibold">{detailProduct.name}</h3>
+                {detailProduct.description && <p className="text-sm text-muted-foreground mt-1">{detailProduct.description}</p>}
+              </div>
+
+              {/* Status Badges */}
+              <div className="flex flex-wrap gap-2">
+                {detailProduct.is_active
+                  ? <Badge className="bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300 border-0">Active</Badge>
+                  : <Badge variant="secondary">Inactive</Badge>}
+                {(detailProduct as any).coming_soon && <Badge className="bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300 border-0">Coming Soon</Badge>}
+                {detailType === "seller" && (
+                  (detailProduct as SellerProduct).is_approved
+                    ? <Badge className="bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 border-0">Approved</Badge>
+                    : <Badge className="bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-300 border-0">Pending</Badge>
+                )}
+                {detailType === "seller" && (detailProduct as SellerProduct).is_featured && (
+                  <Badge className="bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300 border-0">Featured</Badge>
+                )}
+              </div>
+
+              {/* Pricing Grid */}
+              <div className="rounded-lg border p-3 space-y-2">
+                <p className="text-sm font-medium">Pricing</p>
+                <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
+                  <span className="text-muted-foreground">Purchase Rate:</span><span className="font-medium">₹{(detailProduct as any).purchase_rate ?? 0}</span>
+                  <span className="text-muted-foreground">Selling Price:</span><span className="font-medium">₹{detailProduct.price}</span>
+                  <span className="text-muted-foreground">MRP:</span><span className="font-medium">₹{(detailProduct as any).mrp ?? 0}</span>
+                  <span className="text-muted-foreground">Discount:</span><span className="font-medium">₹{(detailProduct as any).discount_rate ?? 0}</span>
+                  <span className="text-muted-foreground">Margin %:</span><span className="font-medium text-primary">{getEffectiveMargin(detailProduct as any).toFixed(1)}%</span>
+                  {(detailProduct as any).purchase_rate > 0 && detailProduct.price > 0 && (
+                    <>
+                      <span className="text-muted-foreground">Margin Amount:</span>
+                      <span className="font-medium">₹{(detailProduct.price - (detailProduct as any).purchase_rate).toFixed(2)}</span>
+                    </>
+                  )}
+                </div>
+              </div>
+
+              {/* Stock & Category */}
+              <div className="rounded-lg border p-3 space-y-2">
+                <p className="text-sm font-medium">Details</p>
+                <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
+                  <span className="text-muted-foreground">Category:</span><span className="font-medium">{detailProduct.category ?? "—"}</span>
+                  <span className="text-muted-foreground">Stock:</span><span className="font-medium">{detailProduct.stock}</span>
+                  {detailType === "own" && (detailProduct as any).section && (
+                    <><span className="text-muted-foreground">Section:</span><span className="font-medium">{sectionOptions.find(s => s.value === (detailProduct as any).section)?.label ?? (detailProduct as any).section}</span></>
+                  )}
+                  {(detailProduct as any).wallet_points > 0 && (
+                    <><span className="text-muted-foreground">Wallet Points:</span><span className="font-medium">{(detailProduct as any).wallet_points}</span></>
+                  )}
+                </div>
+              </div>
+
+              {/* Featured Discount (if applicable) */}
+              {detailType === "seller" && (detailProduct as SellerProduct).is_featured && (detailProduct as any).featured_discount_value > 0 && (
+                <div className="rounded-lg border border-yellow-200 bg-yellow-50 dark:border-yellow-900 dark:bg-yellow-900/20 p-3">
+                  <p className="text-sm font-medium flex items-center gap-2"><Star className="h-4 w-4 text-yellow-500" /> Featured Discount</p>
+                  <p className="text-sm mt-1">
+                    {(detailProduct as any).featured_discount_type === "percentage"
+                      ? `${(detailProduct as any).featured_discount_value}% off`
+                      : `₹${(detailProduct as any).featured_discount_value} off`}
+                  </p>
+                </div>
+              )}
+
+              {/* Video URL */}
+              {(detailProduct as any).video_url && (
+                <div className="text-sm">
+                  <span className="text-muted-foreground">Video: </span>
+                  <a href={(detailProduct as any).video_url} target="_blank" rel="noopener noreferrer" className="text-primary underline">{(detailProduct as any).video_url}</a>
+                </div>
+              )}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
 
       {/* Seller Product Edit Dialog */}
       <Dialog open={sellerEditOpen} onOpenChange={(v) => { setSellerEditOpen(v); if (!v) setSellerEditId(null); }}>
