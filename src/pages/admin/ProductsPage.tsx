@@ -79,6 +79,17 @@ const ProductsPage = () => {
   const [sellerSearch, setSellerSearch] = useState("");
   const [detailProduct, setDetailProduct] = useState<(Product | SellerProduct) | null>(null);
   const [detailType, setDetailType] = useState<"own" | "seller">("own");
+  const [detailSellerInfo, setDetailSellerInfo] = useState<{
+    company_name: string | null;
+    business_address: string | null;
+    business_city: string | null;
+    business_state: string | null;
+    business_pincode: string | null;
+    business_phone: string | null;
+    business_email: string | null;
+    full_name: string | null;
+    gst_number: string | null;
+  } | null>(null);
   const { hasPermission } = usePermissions();
   const { user } = useAuth();
   const { toast } = useToast();
@@ -605,7 +616,7 @@ const ProductsPage = () => {
                     </TableCell>
                     <TableCell>
                       <div className="flex gap-1">
-                        <Button variant="ghost" size="sm" onClick={() => { setDetailProduct(p); setDetailType("seller"); }}><Eye className="h-3.5 w-3.5" /></Button>
+                        <Button variant="ghost" size="sm" onClick={async () => { setDetailProduct(p); setDetailType("seller"); const { data } = await supabase.from("profiles").select("company_name, business_address, business_city, business_state, business_pincode, business_phone, business_email, full_name, gst_number").eq("user_id", p.seller_id).single(); setDetailSellerInfo(data); }}><Eye className="h-3.5 w-3.5" /></Button>
                         <Button variant="ghost" size="sm" onClick={() => openSellerEdit(p)}>
                           <Pencil className="h-3.5 w-3.5" />
                         </Button>
@@ -633,7 +644,7 @@ const ProductsPage = () => {
       </Tabs>
 
       {/* Product Detail Dialog */}
-      <Dialog open={!!detailProduct} onOpenChange={(v) => { if (!v) setDetailProduct(null); }}>
+      <Dialog open={!!detailProduct} onOpenChange={(v) => { if (!v) { setDetailProduct(null); setDetailSellerInfo(null); } }}>
         <DialogContent className="max-h-[85vh] flex flex-col max-w-[95vw] sm:max-w-lg">
           <DialogHeader><DialogTitle>Product Details</DialogTitle></DialogHeader>
           {detailProduct && (
@@ -720,6 +731,35 @@ const ProductsPage = () => {
                 <div className="text-sm">
                   <span className="text-muted-foreground">Video: </span>
                   <a href={(detailProduct as any).video_url} target="_blank" rel="noopener noreferrer" className="text-primary underline">{(detailProduct as any).video_url}</a>
+                </div>
+              )}
+
+              {/* Seller Company Details */}
+              {detailType === "seller" && detailSellerInfo && (
+                <div className="rounded-lg border p-3 space-y-2">
+                  <p className="text-sm font-medium flex items-center gap-2">
+                    <Store className="h-4 w-4 text-primary" /> Seller / Company Details
+                  </p>
+                  <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
+                    {detailSellerInfo.company_name && (
+                      <><span className="text-muted-foreground">Company:</span><span className="font-medium">{detailSellerInfo.company_name}</span></>
+                    )}
+                    {detailSellerInfo.full_name && (
+                      <><span className="text-muted-foreground">Contact Person:</span><span className="font-medium">{detailSellerInfo.full_name}</span></>
+                    )}
+                    {detailSellerInfo.gst_number && (
+                      <><span className="text-muted-foreground">GST Number:</span><span className="font-medium">{detailSellerInfo.gst_number}</span></>
+                    )}
+                    {detailSellerInfo.business_phone && (
+                      <><span className="text-muted-foreground">Phone:</span><span className="font-medium">{detailSellerInfo.business_phone}</span></>
+                    )}
+                    {detailSellerInfo.business_email && (
+                      <><span className="text-muted-foreground">Email:</span><span className="font-medium">{detailSellerInfo.business_email}</span></>
+                    )}
+                    {(detailSellerInfo.business_address || detailSellerInfo.business_city) && (
+                      <><span className="text-muted-foreground">Address:</span><span className="font-medium">{[detailSellerInfo.business_address, detailSellerInfo.business_city, detailSellerInfo.business_state, detailSellerInfo.business_pincode].filter(Boolean).join(", ")}</span></>
+                    )}
+                  </div>
                 </div>
               )}
             </div>
