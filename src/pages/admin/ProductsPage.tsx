@@ -605,6 +605,7 @@ const ProductsPage = () => {
                     </TableCell>
                     <TableCell>
                       <div className="flex gap-1">
+                        <Button variant="ghost" size="sm" onClick={() => { setDetailProduct(p); setDetailType("seller"); }}><Eye className="h-3.5 w-3.5" /></Button>
                         <Button variant="ghost" size="sm" onClick={() => openSellerEdit(p)}>
                           <Pencil className="h-3.5 w-3.5" />
                         </Button>
