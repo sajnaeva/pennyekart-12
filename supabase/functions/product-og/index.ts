@@ -64,7 +64,8 @@ Deno.serve(async (req) => {
       ? product.description.substring(0, 160)
       : `Buy ${product.name} at ₹${product.price}${product.mrp > product.price ? ` (MRP: ₹${product.mrp})` : ""} on Pennyekart`;
     const image = product.image_url || `${siteUrl}/placeholder.svg`;
-    const productUrl = `${siteUrl}/product/${product.id}`;
+    const couponParam = coupon ? `?coupon=${encodeURIComponent(coupon)}` : "";
+    const productUrl = `${siteUrl}/product/${product.id}${couponParam}`;
     const priceText = product.mrp > product.price
       ? `₹${product.price} (MRP: ₹${product.mrp})`
       : `₹${product.price}`;
