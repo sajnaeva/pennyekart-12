@@ -147,7 +147,8 @@ const ImageUpload = ({ bucket, value, onChange, label, useExternalStorage = true
     }
 
     const { data: urlData } = supabase.storage.from(bucket).getPublicUrl(fileName);
-    setUploadMeta({ provider: "supabase", status: "fallback" });
+    const sizeKB = (file.size / 1024).toFixed(0);
+    setUploadMeta({ provider: "supabase", status: "fallback", size: `${sizeKB}KB` });
     onChange(urlData.publicUrl, { provider: "supabase", status: "fallback" });
     setUploading(false);
   };
