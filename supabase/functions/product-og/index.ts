@@ -5,6 +5,9 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+// Bot user agents that need OG meta tags
+const BOT_UA_PATTERN = /whatsapp|facebookexternalhit|facebot|twitterbot|telegrambot|linkedinbot|slackbot|discordbot|pinterest|googlebot|bingbot|yandex|baiduspider|duckduckbot|ia_archiver|semrush|ahrefsbot|mj12bot|preview/i;
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -20,13 +23,27 @@ Deno.serve(async (req) => {
       return new Response("Missing product id", { status: 400 });
     }
 
+    const couponParam = coupon ? `?coupon=${encodeURIComponent(coupon)}` : "";
+    const productUrl = `${siteUrl}/product/${productId}${couponParam}`;
+
+    // Check if request is from a bot/crawler
+    const userAgent = req.headers.get("user-agent") || "";
+    const isBot = BOT_UA_PATTERN.test(userAgent);
+
+    // For real users, redirect immediately with 302 — no need to fetch product data
+    if (!isBot) {
+      return new Response(null, {
+        status: 302,
+        headers: { ...corsHeaders, Location: productUrl },
+      });
+    }
+
+    // For bots, fetch product data and serve OG meta tags
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Try products table first, then seller_products
     let product: any = null;
-    let source = "product";
 
     const { data } = await supabase
       .from("products")
@@ -47,12 +64,10 @@ Deno.serve(async (req) => {
         .maybeSingle();
       if (sellerData) {
         product = sellerData;
-        source = "seller_product";
       }
     }
 
     if (!product) {
-      // Redirect to home if product not found
       return new Response(null, {
         status: 302,
         headers: { Location: siteUrl },
@@ -64,11 +79,6 @@ Deno.serve(async (req) => {
       ? product.description.substring(0, 160)
       : `Buy ${product.name} at ₹${product.price}${product.mrp > product.price ? ` (MRP: ₹${product.mrp})` : ""} on Pennyekart`;
     const image = product.image_url || `${siteUrl}/placeholder.svg`;
-    const couponParam = coupon ? `?coupon=${encodeURIComponent(coupon)}` : "";
-    const productUrl = `${siteUrl}/product/${product.id}${couponParam}`;
-    const priceText = product.mrp > product.price
-      ? `₹${product.price} (MRP: ₹${product.mrp})`
-      : `₹${product.price}`;
 
     const html = `<!DOCTYPE html>
 <html lang="en">
