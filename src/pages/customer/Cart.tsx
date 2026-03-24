@@ -641,30 +641,95 @@ const Cart = () => {
                   + Add delivery address
                 </button>
               )}
+              {/* Saved GPS indicator */}
+              {savedLat && savedLng && (
+                <p className="mt-2 text-xs text-muted-foreground flex items-center gap-1">
+                  <LocateFixed className="h-3 w-3 text-primary" />
+                  GPS saved: {savedLat.toFixed(5)}, {savedLng.toFixed(5)}
+                </p>
+              )}
+
+              {/* Save My Location (GPS) */}
+              <button
+                onClick={async () => {
+                  if (!navigator.geolocation) {
+                    toast.error("Geolocation is not supported by your browser");
+                    return;
+                  }
+                  if (!user) {
+                    toast.error("Please login first");
+                    return;
+                  }
+                  setLocatingGps(true);
+                  navigator.geolocation.getCurrentPosition(
+                    async (position) => {
+                      const { latitude, longitude } = position.coords;
+                      await supabase
+                        .from("profiles")
+                        .update({ latitude, longitude } as any)
+                        .eq("user_id", user.id);
+                      setSavedLat(latitude);
+                      setSavedLng(longitude);
+                      setLocatingGps(false);
+                      toast.success("GPS location saved permanently!");
+                    },
+                    () => {
+                      setLocatingGps(false);
+                      toast.error("Unable to get location. Please enable location access.");
+                    },
+                    { enableHighAccuracy: true, timeout: 10000 }
+                  );
+                }}
+                disabled={locatingGps}
+                className="mt-2 flex w-full items-center justify-center gap-2 rounded-md border border-primary/30 bg-primary/10 px-3 py-2 text-sm font-medium text-primary hover:bg-primary/20 transition-colors"
+              >
+                <LocateFixed className="h-4 w-4" />
+                {locatingGps ? "Getting location..." : savedLat ? "Update GPS Location" : "📍 Save My GPS Location"}
+              </button>
+
               {/* Share Location via WhatsApp */}
               <button
                 onClick={() => {
+                  const lat = savedLat;
+                  const lng = savedLng;
+                  if (lat && lng) {
+                    const googleMapsLink = `https://www.google.com/maps?q=${lat},${lng}`;
+                    const message = encodeURIComponent(
+                      `📍 My delivery location:\n${savedAddress || "Address not set"}\n\n📌 Google Maps: ${googleMapsLink}`
+                    );
+                    window.open(`https://wa.me/?text=${message}`, "_blank");
+                    return;
+                  }
                   if (!navigator.geolocation) {
                     toast.error("Geolocation is not supported by your browser");
                     return;
                   }
                   toast.info("Getting your location...");
                   navigator.geolocation.getCurrentPosition(
-                    (position) => {
+                    async (position) => {
                       const { latitude, longitude } = position.coords;
+                      // Save permanently
+                      if (user) {
+                        await supabase
+                          .from("profiles")
+                          .update({ latitude, longitude } as any)
+                          .eq("user_id", user.id);
+                        setSavedLat(latitude);
+                        setSavedLng(longitude);
+                      }
                       const googleMapsLink = `https://www.google.com/maps?q=${latitude},${longitude}`;
                       const message = encodeURIComponent(
                         `📍 My delivery location:\n${savedAddress || "Address not set"}\n\n📌 Google Maps: ${googleMapsLink}`
                       );
                       window.open(`https://wa.me/?text=${message}`, "_blank");
                     },
-                    (error) => {
+                    () => {
                       toast.error("Unable to get location. Please enable location access.");
                     },
                     { enableHighAccuracy: true, timeout: 10000 }
                   );
                 }}
-                className="mt-3 flex w-full items-center justify-center gap-2 rounded-md border border-green-500/30 bg-green-500/10 px-3 py-2 text-sm font-medium text-green-700 hover:bg-green-500/20 transition-colors dark:text-green-400"
+                className="mt-2 flex w-full items-center justify-center gap-2 rounded-md border border-green-500/30 bg-green-500/10 px-3 py-2 text-sm font-medium text-green-700 hover:bg-green-500/20 transition-colors dark:text-green-400"
               >
                 <Share2 className="h-4 w-4" />
                 Share Location via WhatsApp
