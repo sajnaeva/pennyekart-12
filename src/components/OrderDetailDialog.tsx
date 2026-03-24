@@ -90,6 +90,24 @@ const OrderDetailDialog = ({ order, open, onOpenChange, statusLabel = defaultSta
             </div>
           )}
 
+          {/* Google Maps Navigation */}
+          {customerLocation && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="w-full gap-2"
+              onClick={() => {
+                window.open(
+                  `https://www.google.com/maps/dir/?api=1&destination=${customerLocation.lat},${customerLocation.lng}`,
+                  "_blank"
+                );
+              }}
+            >
+              <Navigation className="h-4 w-4 text-primary" />
+              Navigate to Customer (Google Maps)
+            </Button>
+          )}
+
           <Separator />
 
           {/* Items */}
