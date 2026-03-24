@@ -1137,7 +1137,9 @@ export type Database = {
           is_blocked: boolean
           is_super_admin: boolean
           last_login_at: string | null
+          latitude: number | null
           local_body_id: string | null
+          longitude: number | null
           mobile_number: string | null
           referral_code: string | null
           referred_by: string | null
@@ -1170,7 +1172,9 @@ export type Database = {
           is_blocked?: boolean
           is_super_admin?: boolean
           last_login_at?: string | null
+          latitude?: number | null
           local_body_id?: string | null
+          longitude?: number | null
           mobile_number?: string | null
           referral_code?: string | null
           referred_by?: string | null
@@ -1203,7 +1207,9 @@ export type Database = {
           is_blocked?: boolean
           is_super_admin?: boolean
           last_login_at?: string | null
+          latitude?: number | null
           local_body_id?: string | null
+          longitude?: number | null
           mobile_number?: string | null
           referral_code?: string | null
           referred_by?: string | null
