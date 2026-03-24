@@ -28,6 +28,9 @@ const Cart = () => {
   const [deliveryAddress, setDeliveryAddress] = useState("");
   const [savedAddress, setSavedAddress] = useState<string | null>(null);
   const [addressLoading, setAddressLoading] = useState(false);
+  const [savedLat, setSavedLat] = useState<number | null>(null);
+  const [savedLng, setSavedLng] = useState<number | null>(null);
+  const [locatingGps, setLocatingGps] = useState(false);
 
   const [couponCode, setCouponCode] = useState("");
   const [appliedCoupon, setAppliedCoupon] = useState<{ code: string; discount: number; collabId?: string } | null>(null);
