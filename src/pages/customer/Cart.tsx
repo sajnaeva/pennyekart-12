@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { ArrowLeft, Minus, Plus, Trash2, ShieldCheck, Clock, MapPin, Share2 } from "lucide-react";
+import { ArrowLeft, Minus, Plus, Trash2, ShieldCheck, Clock, MapPin, Share2, LocateFixed } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useCart } from "@/hooks/useCart";
 import { useAuth } from "@/hooks/useAuth";
