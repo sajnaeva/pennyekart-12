@@ -1,7 +1,10 @@
+import { useEffect, useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { Package, MapPin, Calendar, User } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Package, MapPin, Calendar, Navigation } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 
 interface OrderItem {
   id?: string;
