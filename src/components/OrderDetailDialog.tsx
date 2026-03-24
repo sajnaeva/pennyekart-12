@@ -1,7 +1,10 @@
+import { useEffect, useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { Package, MapPin, Calendar, User } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Package, MapPin, Calendar, Navigation } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 
 interface OrderItem {
   id?: string;
@@ -33,6 +36,26 @@ interface Props {
 const defaultStatusLabel = (s: string) => s.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase());
 
 const OrderDetailDialog = ({ order, open, onOpenChange, statusLabel = defaultStatusLabel }: Props) => {
+  const [customerLocation, setCustomerLocation] = useState<{ lat: number; lng: number } | null>(null);
+  const [loadingLocation, setLoadingLocation] = useState(false);
+
+  useEffect(() => {
+    setCustomerLocation(null);
+    if (!order?.user_id) return;
+    setLoadingLocation(true);
+    supabase
+      .from("profiles")
+      .select("latitude, longitude")
+      .eq("user_id", order.user_id)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (data?.latitude && data?.longitude) {
+          setCustomerLocation({ lat: data.latitude, lng: data.longitude });
+        }
+        setLoadingLocation(false);
+      });
+  }, [order?.user_id, open]);
+
   if (!order) return null;
 
   const items: OrderItem[] = Array.isArray(order.items) ? order.items : [];
@@ -65,6 +88,24 @@ const OrderDetailDialog = ({ order, open, onOpenChange, statusLabel = defaultSta
               <MapPin className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
               <span className="text-muted-foreground">{order.shipping_address}</span>
             </div>
+          )}
+
+          {/* Google Maps Navigation */}
+          {customerLocation && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="w-full gap-2"
+              onClick={() => {
+                window.open(
+                  `https://www.google.com/maps/dir/?api=1&destination=${customerLocation.lat},${customerLocation.lng}`,
+                  "_blank"
+                );
+              }}
+            >
+              <Navigation className="h-4 w-4 text-primary" />
+              Navigate to Customer (Google Maps)
+            </Button>
           )}
 
           <Separator />
