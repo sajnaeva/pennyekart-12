@@ -48,14 +48,16 @@ const Cart = () => {
     if (user) {
       supabase
         .from("profiles")
-        .select("business_address")
+        .select("business_address, latitude, longitude")
         .eq("user_id", user.id)
         .single()
-        .then(({ data }) => {
+        .then(({ data }: any) => {
           if (data?.business_address) {
             setSavedAddress(data.business_address);
             setDeliveryAddress(data.business_address);
           }
+          if (data?.latitude) setSavedLat(data.latitude);
+          if (data?.longitude) setSavedLng(data.longitude);
         });
       supabase
         .from("customer_wallets")
