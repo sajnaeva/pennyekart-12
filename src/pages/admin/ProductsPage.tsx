@@ -4,7 +4,7 @@ import AdminLayout from "@/components/admin/AdminLayout";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -223,9 +223,13 @@ const ProductsPage = () => {
     setOpen(false); setForm(emptyProduct); setEditId(null); fetchProducts();
   };
 
+  const [deleteConfirm, setDeleteConfirm] = useState<{ id: string; name: string } | null>(null);
+
   const handleDelete = async (id: string) => {
     await supabase.from("products").delete().eq("id", id);
     fetchProducts();
+    setDeleteConfirm(null);
+    toast({ title: "Product deleted successfully" });
   };
 
   const toggleComingSoon = async (p: Product) => {
@@ -558,7 +562,7 @@ const ProductsPage = () => {
                       <div className="flex gap-1">
                         <Button variant="ghost" size="sm" onClick={() => { setDetailProduct(p); setDetailType("own"); }}><Eye className="h-3.5 w-3.5" /></Button>
                         {hasPermission("update_products") && <Button variant="ghost" size="sm" onClick={() => openEdit(p)}><Pencil className="h-3.5 w-3.5" /></Button>}
-                        {hasPermission("delete_products") && <Button variant="ghost" size="sm" onClick={() => handleDelete(p.id)}><Trash2 className="h-3.5 w-3.5" /></Button>}
+                        {hasPermission("delete_products") && <Button variant="ghost" size="sm" onClick={() => setDeleteConfirm({ id: p.id, name: p.name })}><Trash2 className="h-3.5 w-3.5 text-destructive" /></Button>}
                       </div>
                     </TableCell>
                   </TableRow>
