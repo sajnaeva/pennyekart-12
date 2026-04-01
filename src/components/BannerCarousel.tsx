@@ -25,12 +25,12 @@ const fetchBanners = async () => {
       link: b.link_url || "",
     }));
   }
-  return fallbackBanners;
+  return [];
 };
 
 const BannerCarousel = () => {
   const [current, setCurrent] = useState(0);
-  const { data: banners = fallbackBanners } = useQuery({
+  const { data: banners = [] } = useQuery({
     queryKey: ["banners"],
     queryFn: fetchBanners,
     staleTime: 10 * 60 * 1000,
@@ -50,6 +50,8 @@ const BannerCarousel = () => {
     const id = setInterval(next, 4000);
     return () => clearInterval(id);
   }, [next]);
+
+  if (banners.length === 0) return null;
 
   const BannerImage = ({ src, alt, link, className }: { src: string; alt: string; link: string; className: string }) => {
     const img = <img src={src} alt={alt} className={className} loading="lazy" />;
