@@ -51,6 +51,8 @@ const BannerCarousel = () => {
     return () => clearInterval(id);
   }, [next]);
 
+  if (banners.length === 0) return null;
+
   const BannerImage = ({ src, alt, link, className }: { src: string; alt: string; link: string; className: string }) => {
     const img = <img src={src} alt={alt} className={className} loading="lazy" />;
     return link ? <a href={link} target="_blank" rel="noopener noreferrer">{img}</a> : img;
