@@ -89,11 +89,25 @@ const AppSettingsPage = () => {
   const handleSave = async () => {
     setSaving(true);
     try {
-      const { error } = await supabase
+      // Check if row exists
+      const { data: existing } = await supabase
         .from("app_settings")
-        .upsert({ key: "pennycarbs_url", value: carbsUrl.trim(), description: "Penny Carbs food delivery URL" }, { onConflict: "key" });
+        .select("id")
+        .eq("key", "pennycarbs_url")
+        .maybeSingle();
 
-      if (error) throw error;
+      if (existing) {
+        const { error } = await supabase
+          .from("app_settings")
+          .update({ value: carbsUrl.trim() })
+          .eq("key", "pennycarbs_url");
+        if (error) throw error;
+      } else {
+        const { error } = await supabase
+          .from("app_settings")
+          .insert({ key: "pennycarbs_url", value: carbsUrl.trim(), description: "Penny Carbs food delivery URL" });
+        if (error) throw error;
+      }
 
       toast({
         title: "Settings saved",
