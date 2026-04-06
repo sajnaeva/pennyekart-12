@@ -369,6 +369,136 @@ const ReportsPage = () => {
     return { topSearches, zeroResultSearches, dailyVolume, uniqueSearchers, totalSearches, zeroResultTotal };
   }, [filteredSearchHistory]);
 
+  // ─── Customer Analytics ────────────────────────────────────────────────────
+  const [custInactiveDays, setCustInactiveDays] = useState<number>(30);
+
+  const customerAnalytics = useMemo(() => {
+    const now = new Date();
+    const customers = profiles.filter(p => p.user_type === "customer");
+
+    // Build order map per customer
+    const customerOrderMap: Record<string, { count: number; totalSpent: number; lastOrderDate: string | null; firstOrderDate: string | null }> = {};
+    orders.forEach(o => {
+      if (!o.user_id || o.status === "cancelled") return;
+      if (!customerOrderMap[o.user_id]) customerOrderMap[o.user_id] = { count: 0, totalSpent: 0, lastOrderDate: null, firstOrderDate: null };
+      const rec = customerOrderMap[o.user_id];
+      rec.count++;
+      if (o.status === "delivered") rec.totalSpent += o.total || 0;
+      if (!rec.lastOrderDate || o.created_at > rec.lastOrderDate) rec.lastOrderDate = o.created_at;
+      if (!rec.firstOrderDate || o.created_at < rec.firstOrderDate) rec.firstOrderDate = o.created_at;
+    });
+
+    // Classify customers
+    type CustRow = {
+      userId: string; name: string; mobile: string | null;
+      localBodyId: string | null; wardNumber: number | null;
+      status: "active" | "inactive" | "new" | "never_ordered";
+      orderCount: number; totalSpent: number;
+      lastOrderDate: string | null; firstOrderDate: string | null;
+      daysSinceLastOrder: number | null; joinedAt: string;
+    };
+
+    const custRows: CustRow[] = customers.map(c => {
+      const om = customerOrderMap[c.user_id];
+      const orderCount = om?.count || 0;
+      const totalSpent = om?.totalSpent || 0;
+      const lastOrderDate = om?.lastOrderDate || null;
+      const firstOrderDate = om?.firstOrderDate || null;
+      const daysSinceLastOrder = lastOrderDate ? differenceInDays(now, new Date(lastOrderDate)) : null;
+
+      let status: CustRow["status"];
+      if (orderCount === 0) status = "never_ordered";
+      else if (daysSinceLastOrder !== null && daysSinceLastOrder <= 7) status = "active";
+      else if (daysSinceLastOrder !== null && daysSinceLastOrder <= custInactiveDays) status = "active";
+      else status = "inactive";
+
+      // If joined within 7 days and no orders, mark as new
+      const joinedDaysAgo = differenceInDays(now, new Date((c as any).created_at || now));
+      if (orderCount === 0 && joinedDaysAgo <= 7) status = "new";
+
+      return {
+        userId: c.user_id,
+        name: c.full_name || "Unknown",
+        mobile: (c as any).mobile_number || null,
+        localBodyId: c.local_body_id,
+        wardNumber: c.ward_number,
+        status,
+        orderCount,
+        totalSpent,
+        lastOrderDate,
+        firstOrderDate,
+        daysSinceLastOrder,
+        joinedAt: (c as any).created_at || "",
+      };
+    });
+
+    // Apply location filters
+    let filtered = custRows;
+    if (filterDistrict !== "all" || filterLocalBody !== "all" || filterWard !== "all") {
+      filtered = custRows.filter(c => {
+        if (filterLocalBody !== "all") {
+          if (c.localBodyId !== filterLocalBody) return false;
+          if (filterWard !== "all" && c.wardNumber !== Number(filterWard)) return false;
+        } else if (filterDistrict !== "all") {
+          if (!c.localBodyId || !localBodyIdsForDistrict?.has(c.localBodyId)) return false;
+        }
+        return true;
+      });
+    }
+
+    // Apply date filter — only include customers who joined within date range
+    if (dateFrom && dateTo) {
+      filtered = filtered.filter(c => {
+        if (!c.joinedAt) return true;
+        const d = new Date(c.joinedAt);
+        return isWithinInterval(d, { start: startOfDay(dateFrom), end: endOfDay(dateTo) }) ||
+          (c.lastOrderDate && isWithinInterval(new Date(c.lastOrderDate), { start: startOfDay(dateFrom), end: endOfDay(dateTo) }));
+      });
+    }
+
+    const totalCustomers = filtered.length;
+    const active = filtered.filter(c => c.status === "active");
+    const inactive = filtered.filter(c => c.status === "inactive");
+    const newCust = filtered.filter(c => c.status === "new");
+    const neverOrdered = filtered.filter(c => c.status === "never_ordered");
+
+    const avgOrderValue = active.length > 0
+      ? active.reduce((s, c) => s + (c.orderCount > 0 ? c.totalSpent / c.orderCount : 0), 0) / active.length
+      : 0;
+
+    const totalRevenue = filtered.reduce((s, c) => s + c.totalSpent, 0);
+    const repeatCustomers = filtered.filter(c => c.orderCount > 1);
+
+    // Top customers by spend
+    const topSpenders = [...filtered].sort((a, b) => b.totalSpent - a.totalSpent).slice(0, 10);
+
+    // Activity by panchayath
+    const lbActivity: Record<string, { name: string; active: number; inactive: number; neverOrdered: number; total: number }> = {};
+    filtered.forEach(c => {
+      const lbName = c.localBodyId ? (lbMap[c.localBodyId] || "Unknown") : "Unknown";
+      if (!lbActivity[lbName]) lbActivity[lbName] = { name: lbName, active: 0, inactive: 0, neverOrdered: 0, total: 0 };
+      lbActivity[lbName].total++;
+      if (c.status === "active") lbActivity[lbName].active++;
+      else if (c.status === "inactive") lbActivity[lbName].inactive++;
+      else lbActivity[lbName].neverOrdered++;
+    });
+    const lbActivityArr = Object.values(lbActivity).sort((a, b) => b.total - a.total).slice(0, 10);
+
+    // Status distribution for pie chart
+    const statusDist = [
+      { name: "Active", value: active.length },
+      { name: "Inactive", value: inactive.length },
+      { name: "New", value: newCust.length },
+      { name: "Never Ordered", value: neverOrdered.length },
+    ].filter(d => d.value > 0);
+
+    return {
+      totalCustomers, active, inactive, newCust, neverOrdered,
+      avgOrderValue, totalRevenue, repeatCustomers,
+      topSpenders, lbActivityArr, statusDist, filtered
+    };
+  }, [profiles, orders, custInactiveDays, filterDistrict, filterLocalBody, filterWard, localBodyIdsForDistrict, dateFrom, dateTo, lbMap]);
+
   if (loading) {
     return (
       <AdminLayout>
