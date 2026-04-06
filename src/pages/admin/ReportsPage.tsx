@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { format, subDays, subMonths, startOfDay, endOfDay, isWithinInterval } from "date-fns";
+import { format, subDays, subMonths, startOfDay, endOfDay, isWithinInterval, differenceInDays } from "date-fns";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { ChevronDown, CalendarIcon, Filter } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -19,7 +19,8 @@ import {
 } from "recharts";
 import {
   TrendingUp, TrendingDown, ShoppingCart, Package, Users, Wallet,
-  Store, Truck, BarChart3, AlertTriangle, CheckCircle, Search
+  Store, Truck, BarChart3, AlertTriangle, CheckCircle, Search,
+  UserCheck, UserX, UserPlus, Activity
 } from "lucide-react";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -32,7 +33,7 @@ interface Order {
 interface Product { id: string; name: string; price: number; purchase_rate: number; mrp: number; stock: number; is_active: boolean; category: string | null; }
 interface SellerProduct { id: string; name: string; price: number; purchase_rate: number; stock: number; seller_id: string; is_approved: boolean; }
 interface GodownStock { id: string; quantity: number; product_id: string; purchase_price: number; godown_id: string; }
-interface Profile { user_id: string; full_name: string | null; user_type: string; local_body_id: string | null; ward_number: number | null; }
+interface Profile { user_id: string; full_name: string | null; user_type: string; local_body_id: string | null; ward_number: number | null; created_at: string; mobile_number: string | null; }
 interface SellerWallet { seller_id: string; balance: number; }
 interface SellerWalletTxn { seller_id: string; type: string; amount: number; description: string | null; }
 interface LocalBody { id: string; name: string; district_id: string; ward_count: number; }
@@ -180,7 +181,7 @@ const ReportsPage = () => {
         supabase.from("products").select("id,name,price,purchase_rate,mrp,stock,is_active,category"),
         supabase.from("seller_products").select("id,name,price,purchase_rate,stock,seller_id,is_approved"),
         supabase.from("godown_stock").select("id,quantity,product_id,purchase_price,godown_id"),
-        supabase.from("profiles").select("user_id,full_name,user_type,local_body_id,ward_number"),
+        supabase.from("profiles").select("user_id,full_name,user_type,local_body_id,ward_number,created_at,mobile_number"),
         supabase.from("seller_wallets").select("seller_id,balance"),
         supabase.from("seller_wallet_transactions").select("seller_id,type,amount,description"),
         supabase.from("locations_local_bodies").select("id,name,district_id,ward_count"),
@@ -368,6 +369,136 @@ const ReportsPage = () => {
     return { topSearches, zeroResultSearches, dailyVolume, uniqueSearchers, totalSearches, zeroResultTotal };
   }, [filteredSearchHistory]);
 
+  // ─── Customer Analytics ────────────────────────────────────────────────────
+  const [custInactiveDays, setCustInactiveDays] = useState<number>(30);
+
+  const customerAnalytics = useMemo(() => {
+    const now = new Date();
+    const customers = profiles.filter(p => p.user_type === "customer");
+
+    // Build order map per customer
+    const customerOrderMap: Record<string, { count: number; totalSpent: number; lastOrderDate: string | null; firstOrderDate: string | null }> = {};
+    orders.forEach(o => {
+      if (!o.user_id || o.status === "cancelled") return;
+      if (!customerOrderMap[o.user_id]) customerOrderMap[o.user_id] = { count: 0, totalSpent: 0, lastOrderDate: null, firstOrderDate: null };
+      const rec = customerOrderMap[o.user_id];
+      rec.count++;
+      if (o.status === "delivered") rec.totalSpent += o.total || 0;
+      if (!rec.lastOrderDate || o.created_at > rec.lastOrderDate) rec.lastOrderDate = o.created_at;
+      if (!rec.firstOrderDate || o.created_at < rec.firstOrderDate) rec.firstOrderDate = o.created_at;
+    });
+
+    // Classify customers
+    type CustRow = {
+      userId: string; name: string; mobile: string | null;
+      localBodyId: string | null; wardNumber: number | null;
+      status: "active" | "inactive" | "new" | "never_ordered";
+      orderCount: number; totalSpent: number;
+      lastOrderDate: string | null; firstOrderDate: string | null;
+      daysSinceLastOrder: number | null; joinedAt: string;
+    };
+
+    const custRows: CustRow[] = customers.map(c => {
+      const om = customerOrderMap[c.user_id];
+      const orderCount = om?.count || 0;
+      const totalSpent = om?.totalSpent || 0;
+      const lastOrderDate = om?.lastOrderDate || null;
+      const firstOrderDate = om?.firstOrderDate || null;
+      const daysSinceLastOrder = lastOrderDate ? differenceInDays(now, new Date(lastOrderDate)) : null;
+
+      let status: CustRow["status"];
+      if (orderCount === 0) status = "never_ordered";
+      else if (daysSinceLastOrder !== null && daysSinceLastOrder <= 7) status = "active";
+      else if (daysSinceLastOrder !== null && daysSinceLastOrder <= custInactiveDays) status = "active";
+      else status = "inactive";
+
+      // If joined within 7 days and no orders, mark as new
+      const joinedDaysAgo = differenceInDays(now, new Date(c.created_at || now));
+      if (orderCount === 0 && joinedDaysAgo <= 7) status = "new";
+
+      return {
+        userId: c.user_id,
+        name: c.full_name || "Unknown",
+        mobile: c.mobile_number || null,
+        localBodyId: c.local_body_id,
+        wardNumber: c.ward_number,
+        status,
+        orderCount,
+        totalSpent,
+        lastOrderDate,
+        firstOrderDate,
+        daysSinceLastOrder,
+        joinedAt: c.created_at || "",
+      };
+    });
+
+    // Apply location filters
+    let filtered = custRows;
+    if (filterDistrict !== "all" || filterLocalBody !== "all" || filterWard !== "all") {
+      filtered = custRows.filter(c => {
+        if (filterLocalBody !== "all") {
+          if (c.localBodyId !== filterLocalBody) return false;
+          if (filterWard !== "all" && c.wardNumber !== Number(filterWard)) return false;
+        } else if (filterDistrict !== "all") {
+          if (!c.localBodyId || !localBodyIdsForDistrict?.has(c.localBodyId)) return false;
+        }
+        return true;
+      });
+    }
+
+    // Apply date filter — only include customers who joined within date range
+    if (dateFrom && dateTo) {
+      filtered = filtered.filter(c => {
+        if (!c.joinedAt) return true;
+        const d = new Date(c.joinedAt);
+        return isWithinInterval(d, { start: startOfDay(dateFrom), end: endOfDay(dateTo) }) ||
+          (c.lastOrderDate && isWithinInterval(new Date(c.lastOrderDate), { start: startOfDay(dateFrom), end: endOfDay(dateTo) }));
+      });
+    }
+
+    const totalCustomers = filtered.length;
+    const active = filtered.filter(c => c.status === "active");
+    const inactive = filtered.filter(c => c.status === "inactive");
+    const newCust = filtered.filter(c => c.status === "new");
+    const neverOrdered = filtered.filter(c => c.status === "never_ordered");
+
+    const avgOrderValue = active.length > 0
+      ? active.reduce((s, c) => s + (c.orderCount > 0 ? c.totalSpent / c.orderCount : 0), 0) / active.length
+      : 0;
+
+    const totalRevenue = filtered.reduce((s, c) => s + c.totalSpent, 0);
+    const repeatCustomers = filtered.filter(c => c.orderCount > 1);
+
+    // Top customers by spend
+    const topSpenders = [...filtered].sort((a, b) => b.totalSpent - a.totalSpent).slice(0, 10);
+
+    // Activity by panchayath
+    const lbActivity: Record<string, { name: string; active: number; inactive: number; neverOrdered: number; total: number }> = {};
+    filtered.forEach(c => {
+      const lbName = c.localBodyId ? (lbMap[c.localBodyId] || "Unknown") : "Unknown";
+      if (!lbActivity[lbName]) lbActivity[lbName] = { name: lbName, active: 0, inactive: 0, neverOrdered: 0, total: 0 };
+      lbActivity[lbName].total++;
+      if (c.status === "active") lbActivity[lbName].active++;
+      else if (c.status === "inactive") lbActivity[lbName].inactive++;
+      else lbActivity[lbName].neverOrdered++;
+    });
+    const lbActivityArr = Object.values(lbActivity).sort((a, b) => b.total - a.total).slice(0, 10);
+
+    // Status distribution for pie chart
+    const statusDist = [
+      { name: "Active", value: active.length },
+      { name: "Inactive", value: inactive.length },
+      { name: "New", value: newCust.length },
+      { name: "Never Ordered", value: neverOrdered.length },
+    ].filter(d => d.value > 0);
+
+    return {
+      totalCustomers, active, inactive, newCust, neverOrdered,
+      avgOrderValue, totalRevenue, repeatCustomers,
+      topSpenders, lbActivityArr, statusDist, filtered
+    };
+  }, [profiles, orders, custInactiveDays, filterDistrict, filterLocalBody, filterWard, localBodyIdsForDistrict, dateFrom, dateTo, lbMap]);
+
   if (loading) {
     return (
       <AdminLayout>
@@ -532,6 +663,7 @@ const ReportsPage = () => {
           <TabsTrigger value="stock">Stock</TabsTrigger>
           <TabsTrigger value="geography">Geography</TabsTrigger>
           <TabsTrigger value="search">Search</TabsTrigger>
+          <TabsTrigger value="customers">Customers</TabsTrigger>
         </TabsList>
 
         {/* ── OVERVIEW ── */}
@@ -1086,6 +1218,175 @@ const ReportsPage = () => {
               </CardContent>
             </Card>
           </div>
+        </TabsContent>
+
+        {/* ── CUSTOMERS ── */}
+        <TabsContent value="customers" className="space-y-6">
+          <div className="flex flex-wrap items-center gap-3 mb-2">
+            <span className="text-sm font-medium text-muted-foreground">Inactive threshold:</span>
+            <Select value={String(custInactiveDays)} onValueChange={v => setCustInactiveDays(Number(v))}>
+              <SelectTrigger className="w-[140px] h-9 text-xs">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="7">7 days</SelectItem>
+                <SelectItem value="14">14 days</SelectItem>
+                <SelectItem value="30">30 days</SelectItem>
+                <SelectItem value="60">60 days</SelectItem>
+                <SelectItem value="90">90 days</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <StatCard label="Total Customers" value={String(customerAnalytics.totalCustomers)} icon={Users} />
+            <StatCard label="Active Customers" value={String(customerAnalytics.active.length)} icon={UserCheck} sub={pct(customerAnalytics.active.length, customerAnalytics.totalCustomers)} color="text-green-600" />
+            <StatCard label="Inactive Customers" value={String(customerAnalytics.inactive.length)} icon={UserX} sub={`No order in ${custInactiveDays}+ days`} color="text-destructive" />
+            <StatCard label="Never Ordered" value={String(customerAnalytics.neverOrdered.length)} icon={AlertTriangle} sub={pct(customerAnalytics.neverOrdered.length, customerAnalytics.totalCustomers)} color="text-amber-500" />
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <StatCard label="New Customers (7d)" value={String(customerAnalytics.newCust.length)} icon={UserPlus} color="text-blue-500" />
+            <StatCard label="Repeat Customers" value={String(customerAnalytics.repeatCustomers.length)} icon={Activity} sub={pct(customerAnalytics.repeatCustomers.length, customerAnalytics.totalCustomers)} />
+            <StatCard label="Customer Revenue" value={fmt(customerAnalytics.totalRevenue)} icon={TrendingUp} color="text-green-600" />
+            <StatCard label="Avg Order Value" value={fmt(customerAnalytics.avgOrderValue)} icon={ShoppingCart} />
+          </div>
+
+          <div className="grid gap-6 lg:grid-cols-2">
+            {/* Status Distribution Pie */}
+            <Card>
+              <CardHeader><CardTitle className="text-base">Customer Status Distribution</CardTitle></CardHeader>
+              <CardContent>
+                {customerAnalytics.statusDist.length === 0 ? (
+                  <p className="text-sm text-muted-foreground text-center py-8">No customer data</p>
+                ) : (
+                  <ResponsiveContainer width="100%" height={280}>
+                    <PieChart>
+                      <Pie data={customerAnalytics.statusDist} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={100} label={({ name, value }) => `${name}: ${value}`}>
+                        {customerAnalytics.statusDist.map((_, i) => (
+                          <Cell key={i} fill={COLORS[i % COLORS.length]} />
+                        ))}
+                      </Pie>
+                      <Tooltip />
+                      <Legend />
+                    </PieChart>
+                  </ResponsiveContainer>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Activity by Panchayath */}
+            <Card>
+              <CardHeader><CardTitle className="text-base">Customer Activity by Area</CardTitle></CardHeader>
+              <CardContent>
+                {customerAnalytics.lbActivityArr.length === 0 ? (
+                  <p className="text-sm text-muted-foreground text-center py-8">No location data</p>
+                ) : (
+                  <ResponsiveContainer width="100%" height={280}>
+                    <BarChart data={customerAnalytics.lbActivityArr} layout="vertical">
+                      <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
+                      <XAxis type="number" className="text-xs" />
+                      <YAxis type="category" dataKey="name" width={120} className="text-xs" />
+                      <Tooltip />
+                      <Legend />
+                      <Bar dataKey="active" name="Active" stackId="a" fill="hsl(var(--chart-3,160 60% 45%))" />
+                      <Bar dataKey="inactive" name="Inactive" stackId="a" fill="hsl(var(--destructive))" />
+                      <Bar dataKey="neverOrdered" name="Never Ordered" stackId="a" fill="hsl(var(--chart-4,30 80% 55%))" />
+                    </BarChart>
+                  </ResponsiveContainer>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Top Spenders */}
+          <Card>
+            <CardHeader><CardTitle className="text-base">Top 10 Customers by Spending</CardTitle></CardHeader>
+            <CardContent>
+              {customerAnalytics.topSpenders.length === 0 ? (
+                <p className="text-sm text-muted-foreground text-center py-4">No customer data</p>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>#</TableHead>
+                      <TableHead>Customer</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead className="text-right">Orders</TableHead>
+                      <TableHead className="text-right">Total Spent</TableHead>
+                      <TableHead className="text-right">Avg Order</TableHead>
+                      <TableHead className="text-right">Last Order</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {customerAnalytics.topSpenders.map((c, i) => (
+                      <TableRow key={c.userId}>
+                        <TableCell className="text-muted-foreground">{i + 1}</TableCell>
+                        <TableCell className="font-medium">{c.name}</TableCell>
+                        <TableCell>
+                          <Badge variant={c.status === "active" ? "default" : c.status === "inactive" ? "destructive" : "secondary"}>
+                            {c.status === "never_ordered" ? "Never Ordered" : c.status}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-right">{c.orderCount}</TableCell>
+                        <TableCell className="text-right font-semibold">{fmt(c.totalSpent)}</TableCell>
+                        <TableCell className="text-right">{c.orderCount > 0 ? fmt(c.totalSpent / c.orderCount) : "—"}</TableCell>
+                        <TableCell className="text-right text-xs text-muted-foreground">
+                          {c.lastOrderDate ? format(new Date(c.lastOrderDate), "dd MMM yy") : "—"}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Full Customer List */}
+          <Card>
+            <CardHeader><CardTitle className="text-base">All Customers ({customerAnalytics.filtered.length})</CardTitle></CardHeader>
+            <CardContent>
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Customer</TableHead>
+                      <TableHead>Area</TableHead>
+                      <TableHead>Ward</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead className="text-right">Orders</TableHead>
+                      <TableHead className="text-right">Total Spent</TableHead>
+                      <TableHead className="text-right">Days Since Last</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {customerAnalytics.filtered.length === 0 ? (
+                      <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground">No customers found</TableCell></TableRow>
+                    ) : (
+                      customerAnalytics.filtered.slice(0, 100).map(c => (
+                        <TableRow key={c.userId}>
+                          <TableCell className="font-medium">{c.name}</TableCell>
+                          <TableCell className="text-xs">{c.localBodyId ? (lbMap[c.localBodyId] || "—") : "—"}</TableCell>
+                          <TableCell className="text-xs">{c.wardNumber || "—"}</TableCell>
+                          <TableCell>
+                            <Badge variant={c.status === "active" ? "default" : c.status === "inactive" ? "destructive" : c.status === "new" ? "outline" : "secondary"} className="text-xs">
+                              {c.status === "never_ordered" ? "Never Ordered" : c.status === "new" ? "New" : c.status}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-right">{c.orderCount}</TableCell>
+                          <TableCell className="text-right">{c.totalSpent > 0 ? fmt(c.totalSpent) : "—"}</TableCell>
+                          <TableCell className="text-right text-xs">{c.daysSinceLastOrder !== null ? `${c.daysSinceLastOrder}d` : "—"}</TableCell>
+                        </TableRow>
+                      ))
+                    )}
+                  </TableBody>
+                </Table>
+                {customerAnalytics.filtered.length > 100 && (
+                  <p className="text-xs text-muted-foreground text-center mt-2">Showing first 100 of {customerAnalytics.filtered.length} customers</p>
+                )}
+              </div>
+            </CardContent>
+          </Card>
         </TabsContent>
       </Tabs>
     </AdminLayout>
