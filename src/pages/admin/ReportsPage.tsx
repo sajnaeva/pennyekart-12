@@ -1219,6 +1219,175 @@ const ReportsPage = () => {
             </Card>
           </div>
         </TabsContent>
+
+        {/* ── CUSTOMERS ── */}
+        <TabsContent value="customers" className="space-y-6">
+          <div className="flex flex-wrap items-center gap-3 mb-2">
+            <span className="text-sm font-medium text-muted-foreground">Inactive threshold:</span>
+            <Select value={String(custInactiveDays)} onValueChange={v => setCustInactiveDays(Number(v))}>
+              <SelectTrigger className="w-[140px] h-9 text-xs">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="7">7 days</SelectItem>
+                <SelectItem value="14">14 days</SelectItem>
+                <SelectItem value="30">30 days</SelectItem>
+                <SelectItem value="60">60 days</SelectItem>
+                <SelectItem value="90">90 days</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <StatCard label="Total Customers" value={String(customerAnalytics.totalCustomers)} icon={Users} />
+            <StatCard label="Active Customers" value={String(customerAnalytics.active.length)} icon={UserCheck} sub={pct(customerAnalytics.active.length, customerAnalytics.totalCustomers)} color="text-green-600" />
+            <StatCard label="Inactive Customers" value={String(customerAnalytics.inactive.length)} icon={UserX} sub={`No order in ${custInactiveDays}+ days`} color="text-destructive" />
+            <StatCard label="Never Ordered" value={String(customerAnalytics.neverOrdered.length)} icon={AlertTriangle} sub={pct(customerAnalytics.neverOrdered.length, customerAnalytics.totalCustomers)} color="text-amber-500" />
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <StatCard label="New Customers (7d)" value={String(customerAnalytics.newCust.length)} icon={UserPlus} color="text-blue-500" />
+            <StatCard label="Repeat Customers" value={String(customerAnalytics.repeatCustomers.length)} icon={Activity} sub={pct(customerAnalytics.repeatCustomers.length, customerAnalytics.totalCustomers)} />
+            <StatCard label="Customer Revenue" value={fmt(customerAnalytics.totalRevenue)} icon={TrendingUp} color="text-green-600" />
+            <StatCard label="Avg Order Value" value={fmt(customerAnalytics.avgOrderValue)} icon={ShoppingCart} />
+          </div>
+
+          <div className="grid gap-6 lg:grid-cols-2">
+            {/* Status Distribution Pie */}
+            <Card>
+              <CardHeader><CardTitle className="text-base">Customer Status Distribution</CardTitle></CardHeader>
+              <CardContent>
+                {customerAnalytics.statusDist.length === 0 ? (
+                  <p className="text-sm text-muted-foreground text-center py-8">No customer data</p>
+                ) : (
+                  <ResponsiveContainer width="100%" height={280}>
+                    <PieChart>
+                      <Pie data={customerAnalytics.statusDist} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={100} label={({ name, value }) => `${name}: ${value}`}>
+                        {customerAnalytics.statusDist.map((_, i) => (
+                          <Cell key={i} fill={COLORS[i % COLORS.length]} />
+                        ))}
+                      </Pie>
+                      <Tooltip />
+                      <Legend />
+                    </PieChart>
+                  </ResponsiveContainer>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Activity by Panchayath */}
+            <Card>
+              <CardHeader><CardTitle className="text-base">Customer Activity by Area</CardTitle></CardHeader>
+              <CardContent>
+                {customerAnalytics.lbActivityArr.length === 0 ? (
+                  <p className="text-sm text-muted-foreground text-center py-8">No location data</p>
+                ) : (
+                  <ResponsiveContainer width="100%" height={280}>
+                    <BarChart data={customerAnalytics.lbActivityArr} layout="vertical">
+                      <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
+                      <XAxis type="number" className="text-xs" />
+                      <YAxis type="category" dataKey="name" width={120} className="text-xs" />
+                      <Tooltip />
+                      <Legend />
+                      <Bar dataKey="active" name="Active" stackId="a" fill="hsl(var(--chart-3,160 60% 45%))" />
+                      <Bar dataKey="inactive" name="Inactive" stackId="a" fill="hsl(var(--destructive))" />
+                      <Bar dataKey="neverOrdered" name="Never Ordered" stackId="a" fill="hsl(var(--chart-4,30 80% 55%))" />
+                    </BarChart>
+                  </ResponsiveContainer>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Top Spenders */}
+          <Card>
+            <CardHeader><CardTitle className="text-base">Top 10 Customers by Spending</CardTitle></CardHeader>
+            <CardContent>
+              {customerAnalytics.topSpenders.length === 0 ? (
+                <p className="text-sm text-muted-foreground text-center py-4">No customer data</p>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>#</TableHead>
+                      <TableHead>Customer</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead className="text-right">Orders</TableHead>
+                      <TableHead className="text-right">Total Spent</TableHead>
+                      <TableHead className="text-right">Avg Order</TableHead>
+                      <TableHead className="text-right">Last Order</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {customerAnalytics.topSpenders.map((c, i) => (
+                      <TableRow key={c.userId}>
+                        <TableCell className="text-muted-foreground">{i + 1}</TableCell>
+                        <TableCell className="font-medium">{c.name}</TableCell>
+                        <TableCell>
+                          <Badge variant={c.status === "active" ? "default" : c.status === "inactive" ? "destructive" : "secondary"}>
+                            {c.status === "never_ordered" ? "Never Ordered" : c.status}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-right">{c.orderCount}</TableCell>
+                        <TableCell className="text-right font-semibold">{fmt(c.totalSpent)}</TableCell>
+                        <TableCell className="text-right">{c.orderCount > 0 ? fmt(c.totalSpent / c.orderCount) : "—"}</TableCell>
+                        <TableCell className="text-right text-xs text-muted-foreground">
+                          {c.lastOrderDate ? format(new Date(c.lastOrderDate), "dd MMM yy") : "—"}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Full Customer List */}
+          <Card>
+            <CardHeader><CardTitle className="text-base">All Customers ({customerAnalytics.filtered.length})</CardTitle></CardHeader>
+            <CardContent>
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Customer</TableHead>
+                      <TableHead>Area</TableHead>
+                      <TableHead>Ward</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead className="text-right">Orders</TableHead>
+                      <TableHead className="text-right">Total Spent</TableHead>
+                      <TableHead className="text-right">Days Since Last</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {customerAnalytics.filtered.length === 0 ? (
+                      <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground">No customers found</TableCell></TableRow>
+                    ) : (
+                      customerAnalytics.filtered.slice(0, 100).map(c => (
+                        <TableRow key={c.userId}>
+                          <TableCell className="font-medium">{c.name}</TableCell>
+                          <TableCell className="text-xs">{c.localBodyId ? (lbMap[c.localBodyId] || "—") : "—"}</TableCell>
+                          <TableCell className="text-xs">{c.wardNumber || "—"}</TableCell>
+                          <TableCell>
+                            <Badge variant={c.status === "active" ? "default" : c.status === "inactive" ? "destructive" : c.status === "new" ? "outline" : "secondary"} className="text-xs">
+                              {c.status === "never_ordered" ? "Never Ordered" : c.status === "new" ? "New" : c.status}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-right">{c.orderCount}</TableCell>
+                          <TableCell className="text-right">{c.totalSpent > 0 ? fmt(c.totalSpent) : "—"}</TableCell>
+                          <TableCell className="text-right text-xs">{c.daysSinceLastOrder !== null ? `${c.daysSinceLastOrder}d` : "—"}</TableCell>
+                        </TableRow>
+                      ))
+                    )}
+                  </TableBody>
+                </Table>
+                {customerAnalytics.filtered.length > 100 && (
+                  <p className="text-xs text-muted-foreground text-center mt-2">Showing first 100 of {customerAnalytics.filtered.length} customers</p>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
       </Tabs>
     </AdminLayout>
   );
