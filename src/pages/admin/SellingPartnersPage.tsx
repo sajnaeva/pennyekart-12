@@ -122,10 +122,20 @@ const SellingPartnersPage = () => {
     const { error } = await supabase.from("profiles").update({ is_approved: !current }).eq("user_id", userId);
     if (error) {
       toast({ title: "Error", description: error.message, variant: "destructive" });
-    } else {
-      toast({ title: !current ? "Partner approved" : "Partner unapproved" });
-      fetchPartners();
+      return;
     }
+    // When unapproving a partner, also unapprove all their products
+    if (current) {
+      const { error: prodError } = await supabase
+        .from("seller_products")
+        .update({ is_approved: false })
+        .eq("seller_id", userId);
+      if (prodError) {
+        toast({ title: "Warning", description: "Partner unapproved but failed to block products: " + prodError.message, variant: "destructive" });
+      }
+    }
+    toast({ title: !current ? "Partner approved" : "Partner & products unapproved" });
+    fetchPartners();
   };
 
   const toggleProductApproval = async (productId: string, current: boolean) => {
