@@ -33,10 +33,10 @@ const fetchSectionProducts = async (): Promise<SectionProduct[]> => {
     .neq("section", "")
     .limit(50);
 
-  // Fetch featured seller products
+  // Fetch featured seller products (only from approved partners)
   const { data: sellerFeatured } = await supabase
     .from("seller_products")
-    .select("id, name, price, mrp, discount_rate, image_url, category, coming_soon, wallet_points, stock")
+    .select("id, name, price, mrp, discount_rate, image_url, category, coming_soon, wallet_points, stock, seller_id")
     .eq("is_active", true)
     .eq("is_approved", true)
     .eq("is_featured", true)
@@ -44,8 +44,21 @@ const fetchSectionProducts = async (): Promise<SectionProduct[]> => {
     .gt("stock", 0)
     .limit(20);
 
+  // Filter out products whose seller profile is unapproved
+  let approvedSellerProducts = sellerFeatured ?? [];
+  if (approvedSellerProducts.length > 0) {
+    const sellerIds = [...new Set(approvedSellerProducts.map(p => p.seller_id))];
+    const { data: approvedProfiles } = await supabase
+      .from("profiles")
+      .select("user_id")
+      .in("user_id", sellerIds)
+      .eq("is_approved", true);
+    const approvedSet = new Set((approvedProfiles ?? []).map(p => p.user_id));
+    approvedSellerProducts = approvedSellerProducts.filter(p => approvedSet.has(p.seller_id));
+  }
+
   const adminProducts = (sectionData ?? []) as SectionProduct[];
-  const sellerProducts = (sellerFeatured ?? []).map((p) => ({
+  const sellerProducts = approvedSellerProducts.map((p) => ({
     ...p,
     section: "featured" as string,
   })) as SectionProduct[];

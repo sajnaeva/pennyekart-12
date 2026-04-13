@@ -50,7 +50,7 @@ const fetchAreaProducts = async (localBodyId: string, wardNumber: number): Promi
       .gt("quantity", 0),
     supabase
       .from("seller_products")
-      .select("id, name, price, mrp, discount_rate, image_url, description, category, stock, coming_soon, wallet_points")
+      .select("id, name, price, mrp, discount_rate, image_url, description, category, stock, coming_soon, wallet_points, seller_id")
       .in("area_godown_id", godownArr)
       .eq("is_active", true)
       .eq("is_approved", true)
@@ -73,12 +73,23 @@ const fetchAreaProducts = async (localBodyId: string, wardNumber: number): Promi
     if (productData) allProducts.push(...(productData as AreaProduct[]));
   }
 
-  if (sellerRes.data) {
+  if (sellerRes.data && sellerRes.data.length > 0) {
+    // Filter out products from unapproved partners
+    const sellerIds = [...new Set(sellerRes.data.map(sp => sp.seller_id))];
+    const { data: approvedProfiles } = await supabase
+      .from("profiles")
+      .select("user_id")
+      .in("user_id", sellerIds)
+      .eq("is_approved", true);
+    const approvedSet = new Set((approvedProfiles ?? []).map(p => p.user_id));
+
     allProducts.push(
-      ...sellerRes.data.map(sp => ({
-        ...sp,
-        section: "seller" as string | null,
-      } as AreaProduct))
+      ...sellerRes.data
+        .filter(sp => approvedSet.has(sp.seller_id))
+        .map(sp => ({
+          ...sp,
+          section: "seller" as string | null,
+        } as AreaProduct))
     );
   }
 

@@ -119,22 +119,21 @@ const SellingPartnersPage = () => {
   useEffect(() => { fetchPartners(); fetchGodowns(); }, []);
 
   const toggleApproval = async (userId: string, current: boolean) => {
-    const { error } = await supabase.from("profiles").update({ is_approved: !current }).eq("user_id", userId);
+    const newApproved = !current;
+    const { error } = await supabase.from("profiles").update({ is_approved: newApproved }).eq("user_id", userId);
     if (error) {
       toast({ title: "Error", description: error.message, variant: "destructive" });
       return;
     }
-    // When unapproving a partner, also unapprove all their products
-    if (current) {
-      const { error: prodError } = await supabase
-        .from("seller_products")
-        .update({ is_approved: false })
-        .eq("seller_id", userId);
-      if (prodError) {
-        toast({ title: "Warning", description: "Partner unapproved but failed to block products: " + prodError.message, variant: "destructive" });
-      }
+    // Cascade approval status to all partner products (belt-and-suspenders with DB trigger)
+    const { error: prodError } = await supabase
+      .from("seller_products")
+      .update({ is_approved: newApproved })
+      .eq("seller_id", userId);
+    if (prodError) {
+      toast({ title: "Warning", description: "Partner updated but failed to sync products: " + prodError.message, variant: "destructive" });
     }
-    toast({ title: !current ? "Partner approved" : "Partner & products unapproved" });
+    toast({ title: newApproved ? "Partner & all products approved" : "Partner & all products unapproved" });
     fetchPartners();
   };
 
