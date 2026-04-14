@@ -29,6 +29,7 @@ interface Profile {
   is_blocked?: boolean;
   referred_by?: string | null;
   referrer_name?: string | null;
+  customer_id?: string | null;
 }
 
 interface OrderSummary {
@@ -650,7 +651,10 @@ const CustomerList = ({ customers, orderSummaries, walletSummaries, onRefresh }:
                   <TableCell className="font-medium">
                     <div className="flex items-center gap-1.5">
                       {c.is_blocked && <Ban className="h-3.5 w-3.5 text-destructive" />}
-                      {c.full_name ?? "—"}
+                      <div>
+                        <div>{c.full_name ?? "—"}</div>
+                        {c.customer_id && <div className="text-[10px] font-mono text-primary">{c.customer_id}</div>}
+                      </div>
                       {c.referred_by && (
                         <Badge className="text-[9px] px-1.5 py-0 bg-pink-100 text-pink-700 dark:bg-pink-900/30 dark:text-pink-400 border-0 gap-0.5">
                           <UserPlus className="h-2.5 w-2.5" />

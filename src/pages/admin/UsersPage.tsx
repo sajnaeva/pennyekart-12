@@ -35,6 +35,7 @@ interface Profile {
   district_name?: string | null;
   created_at?: string;
   last_login_at?: string | null;
+  customer_id?: string | null;
 }
 
 interface Role {
@@ -339,7 +340,10 @@ const UsersPage = () => {
               <TableBody>
                 {paginatedUsers.map((u) => (
                   <TableRow key={u.id}>
-                    <TableCell>{u.full_name ?? "—"}</TableCell>
+                    <TableCell>
+                      <div>{u.full_name ?? "—"}</div>
+                      {u.customer_id && <div className="text-[10px] font-mono text-primary">{u.customer_id}</div>}
+                    </TableCell>
                     <TableCell>
                       <div>{u.email ?? "—"}</div>
                       {u.mobile_number && <div className="text-xs text-muted-foreground">{u.mobile_number}</div>}
