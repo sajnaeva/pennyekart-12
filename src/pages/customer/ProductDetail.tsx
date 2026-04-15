@@ -225,6 +225,10 @@ const ProductDetail = () => {
   useEffect(() => {
     const fetchProduct = async () => {
       if (!id) return;
+      setLoading(true);
+      setSimilarProducts([]);
+      setProduct(null);
+      setSelectedVariant(null);
 
       // Try main products table first
       let productData: ProductData | null = null;
@@ -258,14 +262,34 @@ const ProductDetail = () => {
       if (productData) {
         setProduct(productData);
         if (productData.category) {
-          const { data: similar } = await supabase
-            .from("products")
-            .select("id, name, price, mrp, discount_rate, description, image_url, image_url_2, image_url_3, video_url, category, stock")
-            .eq("category", productData.category)
-            .eq("is_active", true)
-            .neq("id", id)
-            .limit(10);
-          setSimilarProducts((similar as ProductData[]) || []);
+          // Fetch similar products from both tables in parallel
+          const [adminRes, sellerRes] = await Promise.all([
+            supabase
+              .from("products")
+              .select("id, name, price, mrp, discount_rate, description, image_url, image_url_2, image_url_3, video_url, category, stock, coming_soon, wallet_points")
+              .eq("category", productData.category)
+              .eq("is_active", true)
+              .eq("coming_soon", false)
+              .neq("id", id)
+              .limit(10),
+            supabase
+              .from("seller_products")
+              .select("id, name, price, mrp, discount_rate, description, image_url, image_url_2, image_url_3, video_url, category, stock, coming_soon, wallet_points")
+              .eq("category", productData.category)
+              .eq("is_active", true)
+              .eq("is_approved", true)
+              .eq("coming_soon", false)
+              .neq("id", id)
+              .gt("stock", 0)
+              .limit(10),
+          ]);
+          const combined = [
+            ...((adminRes.data as ProductData[]) || []),
+            ...((sellerRes.data as ProductData[]) || []),
+          ].slice(0, 10);
+          setSimilarProducts(combined);
+        } else {
+          setSimilarProducts([]);
         }
       }
       setLoading(false);
