@@ -1,49 +1,55 @@
 
 
-## Problem
+# AI Chatbot with Voice Support
 
-1. **Products from unapproved partners still showing**: The data fix migration ran, but the trigger may not have deployed correctly, or there's a timing issue. The customer UI queries only check `seller_products.is_approved` — they don't verify the partner's `profiles.is_approved` status.
+## What We're Building
 
-2. **Re-approval should auto-approve all products**: Currently when a partner is re-approved, their products remain blocked. The user wants them auto-approved.
+A floating chat bubble (bottom-right corner) that opens a conversational AI assistant. The bot helps customers with shopping queries (find products, check availability) and customer support (order tracking, returns, delivery questions). Users can tap a mic button to speak their message instead of typing — speech is converted to text, and the AI responds in text with streaming.
 
-## Plan
+## Architecture
 
-### 1. Update the database trigger to handle both directions
-
-Replace the existing `cascade_partner_unapproval` function to also handle re-approval:
-
-```sql
-CREATE OR REPLACE FUNCTION public.cascade_partner_approval_change()
-RETURNS trigger AS $$
-BEGIN
-  IF NEW.user_type = 'selling_partner' 
-     AND OLD.is_approved IS DISTINCT FROM NEW.is_approved THEN
-    UPDATE public.seller_products
-    SET is_approved = NEW.is_approved
-    WHERE seller_id = NEW.user_id;
-  END IF;
-  RETURN NEW;
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
+```text
+┌─────────────────────┐       ┌──────────────────────┐
+│  React Frontend     │       │  Edge Function: chat  │
+│                     │       │                       │
+│  FloatingChatBot    │──SSE──│  Lovable AI Gateway   │
+│  + Web Speech API   │       │  (gemini-3-flash)     │
+│  (mic → text)       │       │  System prompt with   │
+│                     │       │  store context         │
+└─────────────────────┘       └──────────────────────┘
 ```
 
-This single trigger handles both unapproval (blocks all products) and re-approval (approves all products).
+- **Voice input**: Browser's built-in Web Speech API (`webkitSpeechRecognition`) — no extra dependencies or API keys needed
+- **AI backend**: Supabase Edge Function calling Lovable AI Gateway with `LOVABLE_API_KEY` (already available)
+- **Streaming**: SSE token-by-token rendering for fast responses
 
-### 2. Fix existing data again
+## Implementation Steps
 
-Run a data-fix UPDATE to ensure all products of currently-unapproved partners are set to `is_approved = false`.
+### 1. Create Edge Function `supabase/functions/chat/index.ts`
+- Accept `{ messages }` array from client
+- Inject a system prompt tailored to Pennyekart (shopping assistant + customer support context)
+- Stream response from Lovable AI Gateway (`google/gemini-3-flash-preview`)
+- Handle CORS, 429/402 error codes
 
-### 3. Update frontend `toggleApproval` to handle re-approval
+### 2. Update `supabase/config.toml`
+- Add `[functions.chat]` with `verify_jwt = false`
 
-Modify `SellingPartnersPage.tsx` so that when re-approving a partner, the code also sets all their products to `is_approved = true` (matching the trigger as a belt-and-suspenders approach). Update the toast message accordingly.
+### 3. Create `src/components/ChatBot.tsx`
+- Floating bubble icon (bottom-right, above mobile nav)
+- Expandable chat window with message list and input
+- Markdown rendering for AI responses (`react-markdown`)
+- Streaming integration using SSE parsing
+- Mic button using Web Speech API for speech-to-text
+- Visual indicator when listening (pulsing mic icon)
+- Error handling with toast notifications for rate limits
 
-### 4. Add partner approval check to customer queries (defense in depth)
+### 4. Add ChatBot to `src/App.tsx`
+- Render `<ChatBot />` globally inside the router, visible on all pages
 
-Add a join/filter in `useAreaProducts.tsx` and `useSectionProducts.tsx` to also check that the seller's profile `is_approved = true`. This prevents products from showing even if individual product flags are out of sync.
+### Technical Details
 
-### Files changed
-- **New migration**: Update trigger function + data fix
-- **`src/pages/admin/SellingPartnersPage.tsx`**: Update `toggleApproval` to auto-approve products on re-approval
-- **`src/hooks/useAreaProducts.tsx`**: Add partner approval filter
-- **`src/hooks/useSectionProducts.tsx`**: Add partner approval filter
+- **No new dependencies needed** except `react-markdown` (for rendering AI responses)
+- **Web Speech API** works in Chrome, Edge, Safari — fallback hides mic button on unsupported browsers
+- **System prompt** will reference Pennyekart brand, product categories, order help, and wallet features
+- Uses earth-tone styling consistent with brand (amber accents, DM Sans font)
 
