@@ -158,6 +158,42 @@ export type Database = {
         }
         Relationships: []
       }
+      chatbot_audit_log: {
+        Row: {
+          arguments: Json
+          created_at: string
+          duration_ms: number | null
+          error_message: string | null
+          id: string
+          result: Json | null
+          status: string
+          tool_name: string
+          user_id: string | null
+        }
+        Insert: {
+          arguments?: Json
+          created_at?: string
+          duration_ms?: number | null
+          error_message?: string | null
+          id?: string
+          result?: Json | null
+          status?: string
+          tool_name: string
+          user_id?: string | null
+        }
+        Update: {
+          arguments?: Json
+          created_at?: string
+          duration_ms?: number | null
+          error_message?: string | null
+          id?: string
+          result?: Json | null
+          status?: string
+          tool_name?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       chatbot_config: {
         Row: {
           id: string
