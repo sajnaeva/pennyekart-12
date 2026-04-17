@@ -7,17 +7,6 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-// Built-in Penny app quick commands (always available to logged-in users)
-const PENNY_COMMANDS = [
-  { id: "p_orders", label: "My recent orders", prompt: "Show my recent orders" },
-  { id: "p_track", label: "Track my last order", prompt: "What is the status of my latest order?" },
-  { id: "p_wallet", label: "My wallet balance", prompt: "What is my wallet balance and how can I use it?" },
-  { id: "p_referral", label: "My referral code", prompt: "What is my referral code and how does the referral bonus work?" },
-  { id: "p_prime", label: "About Penny Prime", prompt: "Explain Penny Prime benefits and how to join." },
-  { id: "p_flash", label: "Today's flash sales", prompt: "What flash sales are running right now?" },
-  { id: "p_delivery", label: "Delivery charges", prompt: "How are delivery charges calculated for my area?" },
-];
-
 function normalizeMobile(raw: string): string {
   let s = String(raw || "").replace(/\D/g, "");
   if (s.startsWith("91") && s.length > 10) s = s.slice(2);
@@ -63,56 +52,58 @@ serve(async (req) => {
     const elifeEnabled = cfg.elife_enabled === "true";
     const allowedTables = (cfg.elife_allowed_tables || "").split(",").map((s) => s.trim()).filter(Boolean);
 
-    // Check agent status against e-Life
+    // Check agent status against e-Life + load WhatsApp commands for the menu
     let isAgent = false;
     let agentInfo: { name?: string; mobile?: string; source?: string } | null = null;
     let elifeCommands: any[] = [];
 
-    if (elifeEnabled && mobile && mobile.length === 10) {
+    if (elifeEnabled && userId) {
       const elifeUrl = Deno.env.get("ELIFE_SUPABASE_URL");
       const elifeKey = Deno.env.get("ELIFE_SUPABASE_SERVICE_ROLE_KEY");
       if (elifeUrl && elifeKey) {
         const elife = createClient(elifeUrl, elifeKey);
-        const variants = Array.from(new Set([mobile, `91${mobile}`, `0${mobile}`]));
 
-        const probes: { table: string; cols: string[] }[] = [
-          { table: "pennyekart_agents", cols: ["mobile"] },
-          { table: "members", cols: ["mobile", "mobile_number", "phone", "whatsapp_number"] },
-        ];
-
-        outer: for (const p of probes) {
-          if (allowedTables.length && !allowedTables.includes(p.table)) continue;
-          for (const col of p.cols) {
-            for (const v of variants) {
-              const { data, error } = await elife.from(p.table).select("*").eq(col, v).limit(1);
-              if (error) break;
-              if (data && data.length) {
-                isAgent = true;
-                agentInfo = {
-                  name: data[0].name || data[0].full_name || null,
-                  mobile,
-                  source: p.table,
-                };
-                break outer;
+        // Agent detection (only if we have a mobile)
+        if (mobile && mobile.length === 10) {
+          const variants = Array.from(new Set([mobile, `91${mobile}`, `0${mobile}`]));
+          const probes: { table: string; cols: string[] }[] = [
+            { table: "pennyekart_agents", cols: ["mobile"] },
+            { table: "members", cols: ["mobile", "mobile_number", "phone", "whatsapp_number"] },
+          ];
+          outer: for (const p of probes) {
+            if (allowedTables.length && !allowedTables.includes(p.table)) continue;
+            for (const col of p.cols) {
+              for (const v of variants) {
+                const { data, error } = await elife.from(p.table).select("*").eq(col, v).limit(1);
+                if (error) break;
+                if (data && data.length) {
+                  isAgent = true;
+                  agentInfo = {
+                    name: data[0].name || data[0].full_name || null,
+                    mobile,
+                    source: p.table,
+                  };
+                  break outer;
+                }
               }
             }
           }
         }
 
-        // Pull active WhatsApp commands for the menu (only if agent + table allowed)
-        if (isAgent && (!allowedTables.length || allowedTables.includes("whatsapp_bot_commands"))) {
+        // Always pull WhatsApp commands so every logged-in user sees the same menu
+        // as https://elifesociety.lovable.app/admin/whatsapp-commands
+        if (!allowedTables.length || allowedTables.includes("whatsapp_bot_commands")) {
           const { data: cmds } = await elife
             .from("whatsapp_bot_commands")
             .select("keyword, alt_keyword, label, response_text, sort_order")
             .eq("is_active", true)
             .order("sort_order", { ascending: true })
-            .limit(30);
+            .limit(50);
           elifeCommands = (cmds ?? []).map((c: any, i: number) => ({
             id: `e_${i}`,
             label: c.label || c.keyword,
             keyword: c.keyword,
-            // Prompt the bot to actually run this command for the agent
-            prompt: `Run e-Life WhatsApp command "${c.keyword}"${c.label ? ` (${c.label})` : ""} for my account (mobile ${mobile}). If it requires details, ask me.`,
+            prompt: `Run e-Life WhatsApp command "${c.keyword}"${c.label ? ` (${c.label})` : ""}${mobile ? ` for my account (mobile ${mobile})` : ""}. If it requires details, ask me.`,
           }));
         }
       }
@@ -125,7 +116,7 @@ serve(async (req) => {
         isAgent,
         agentInfo,
         elifeEnabled,
-        pennyCommands: userId ? PENNY_COMMANDS : [],
+        pennyCommands: [],
         elifeCommands,
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
