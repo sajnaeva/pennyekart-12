@@ -1,46 +1,69 @@
 
+## What’s actually broken
 
-## Why agent 9497589094 isn't found
+The popup is not mainly failing because of the timer math. The bigger bug is state flow:
 
-I checked the audit log — the bot **did** call `elife_get_agent_hierarchy({mobile: "9497589094"})` three times and got `"No agent records found."` each time. That tool is hardcoded to search tables named `agents`, `agent_hierarchy`, `users` — **none of which exist in e-Life**. e-Life actually stores agents in `pennyekart_agents` and `members`, and payments in `program_registrations` / `old_payments`.
+- `NotificationPopup` renders from `firstUnread`
+- when the user taps `View Message`, `handleView()` immediately calls `markRead(firstUnread.id)`
+- that updates notifications state in `useNotifications`
+- `firstUnread` then changes to the next unread notification or becomes `null`
+- because the popup content still depends on `firstUnread`, the currently opened message can disappear instantly
 
-The bridge is fully enabled with the right tables allowlisted (`pennyekart_agents`, `members`, `program_registrations`, `old_payments`, `whatsapp_bot_commands`, etc.) — only the tool implementations are looking in the wrong place.
+So the popup looks like it is “quick disappearing,” even when auto-dismiss is configured correctly.
 
-## Fix Plan
+## Fix plan
 
-### 1. Rewrite the typed e-Life tools in `supabase/functions/chat/index.ts`
+### 1. Stabilize the popup around a selected notification
+Update `src/components/NotificationPopup.tsx` so it does not render directly from the live `firstUnread` value after opening.
 
-Replace the hardcoded table lists with the real e-Life schema:
+Planned approach:
+- keep a local `activeNotification` state
+- when a new unread notification should be shown, copy it into `activeNotification`
+- render the dialog from `activeNotification`, not `firstUnread`
+- only clear `activeNotification` when the popup fully closes or when intentionally moving to the next message
 
-| Tool | Old tables searched | New tables searched |
-|---|---|---|
-| `elife_get_agent_hierarchy` | `agents`, `agent_hierarchy`, `users` | `pennyekart_agents`, `members` (with upline join) |
-| `elife_check_payment_status` | `registrations`, `payments`, `customers` | `program_registrations`, `old_payments`, `members` |
-| `elife_send_whatsapp_command` | `whatsapp_commands` | `whatsapp_bot_commands` |
+This prevents the message from vanishing as soon as it gets marked as read.
 
-Mobile-number matching will check **multiple column variants** (`mobile`, `mobile_number`, `phone`, `whatsapp_number`, `contact_number`) using `or(...)`, and normalize input by stripping `+91` / leading zeros.
+### 2. Keep auto-dismiss tied to the opened message only
+Retain the current intended behavior:
+- initial “You have a new message” prompt should not auto-close
+- timer starts only after `View Message`
+- timer should use `activeNotification.auto_dismiss_seconds`, not `firstUnread`
 
-### 2. Add a hierarchy enrichment step
+That ensures the configured seconds work predictably.
 
-For `elife_get_agent_hierarchy`: after finding the agent, also fetch their **upline** (referrer/parent agent) and **direct downline** (other agents whose `referrer_mobile` / `parent_id` matches), so the bot can answer "who is above/below me".
+### 3. Make close behavior consistent
+While updating the popup flow:
+- keep `Later` as a dismiss-only action
+- keep `Close` closing the current popup cleanly
+- keep link clicks marking `clicked_at` and navigating correctly
+- avoid reopening the same notification during the same session because of the existing `sessionStorage` tracking
 
-### 3. Improve the system prompt + tool descriptions
+### 4. Verify admin setting alignment
+`src/pages/admin/NotificationsPage.tsx` already saves:
+- `auto_dismiss_seconds: Math.max(0, Number(editing.auto_dismiss_seconds) || 0)`
 
-- Tell the AI: when a user gives a mobile number, **first** call `elife_get_agent_hierarchy`; if empty, fall back to `elife_query_table` against `members` and `program_registrations`.
-- Update tool descriptions so the model knows which tables are actually used.
+So no admin-page UI redesign is needed. I’ll just ensure the popup actually honors that saved value after the state fix.
 
-### 4. Auto-introspect column names (one-time, cached)
+## Files to update
+- `src/components/NotificationPopup.tsx`
 
-On first call per cold start, the function will hit `${ELIFE_URL}/rest/v1/pennyekart_agents?limit=0` to confirm the table exists and discover real column names from PostgREST headers. This protects against e-Life schema drift and avoids re-debugging this same issue later.
+## Expected result after implementation
+- popup stays visible after clicking `View Message`
+- message content remains stable even after it is marked read
+- auto-dismiss works only after full message opens
+- `0` continues to mean “do not auto-dismiss”
 
-### 5. Verification
+## Technical note
+Current root cause is a reactive dependency bug, not just a timeout bug:
 
-After deploy I'll call the chat function with mobile `9497589094` end-to-end and confirm the audit log shows a successful hierarchy result.
+```text
+View Message
+-> markRead()
+-> notifications state updates
+-> firstUnread changes
+-> popup loses its source data
+-> dialog appears to disappear immediately
+```
 
-### Files changed
-| File | Change |
-|---|---|
-| `supabase/functions/chat/index.ts` | Rewrite `elife_get_agent_hierarchy`, `elife_check_payment_status`, `elife_send_whatsapp_command`; refine prompts |
-
-No DB migrations, no new secrets, no UI changes needed — the admin's allowlist already covers everything.
-
+Using a local snapshot (`activeNotification`) will break that chain.
