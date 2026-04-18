@@ -6,6 +6,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import DownloadAppDialog from "@/components/DownloadAppDialog";
 import InviteFriendDialog from "@/components/InviteFriendDialog";
+import NotificationBell from "@/components/NotificationBell";
 
 interface SearchResult {
   id: string;
@@ -279,7 +280,8 @@ const SearchBar = () => {
         </div>
 
         {/* Actions - mobile icons only */}
-        <div className="flex items-center gap-2 sm:hidden">
+        <div className="flex items-center gap-1 sm:hidden">
+          {isLoggedIn && <NotificationBell />}
           <button
             ref={mobileButtonRef}
             onClick={(e) => {
