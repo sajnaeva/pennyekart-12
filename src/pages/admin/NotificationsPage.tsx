@@ -331,79 +331,85 @@ const NotificationsPage = () => {
                 <Card><CardHeader className="pb-2"><CardTitle className="text-sm">Clicked</CardTitle></CardHeader><CardContent><p className="text-2xl font-bold text-emerald-600">{analytics.totals.clicked}</p></CardContent></Card>
               </div>
 
-              <div>
-                <h4 className="font-semibold mb-2">By Panchayath & Ward</h4>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Panchayath</TableHead>
-                      <TableHead>Ward</TableHead>
-                      <TableHead className="text-right">Delivered</TableHead>
-                      <TableHead className="text-right">Read</TableHead>
-                      <TableHead className="text-right">Clicked</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {(analytics.byPanchayath ?? []).map((g: any, i: number) => (
-                      <TableRow key={i}>
-                        <TableCell>{g.local_body_name}</TableCell>
-                        <TableCell>{g.ward_number ?? "-"}</TableCell>
-                        <TableCell className="text-right">{g.delivered}</TableCell>
-                        <TableCell className="text-right">{g.read}</TableCell>
-                        <TableCell className="text-right">{g.clicked}</TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
+              <Accordion type="multiple" className="w-full">
+                <AccordionItem value="by-panchayath">
+                  <AccordionTrigger className="font-semibold">By Panchayath & Ward</AccordionTrigger>
+                  <AccordionContent>
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Panchayath</TableHead>
+                          <TableHead>Ward</TableHead>
+                          <TableHead className="text-right">Delivered</TableHead>
+                          <TableHead className="text-right">Read</TableHead>
+                          <TableHead className="text-right">Clicked</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {(analytics.byPanchayath ?? []).map((g: any, i: number) => (
+                          <TableRow key={i}>
+                            <TableCell>{g.local_body_name}</TableCell>
+                            <TableCell>{g.ward_number ?? "-"}</TableCell>
+                            <TableCell className="text-right">{g.delivered}</TableCell>
+                            <TableCell className="text-right">{g.read}</TableCell>
+                            <TableCell className="text-right">{g.clicked}</TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </AccordionContent>
+                </AccordionItem>
 
-              <div>
-                <div className="flex items-center justify-between mb-2 gap-2 flex-wrap">
-                  <h4 className="font-semibold">Per-User Drilldown</h4>
-                  <div className="flex gap-2">
-                    <Select value={filterPanchayath} onValueChange={setFilterPanchayath}>
-                      <SelectTrigger className="w-40 h-8"><SelectValue placeholder="Panchayath" /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">All Panchayaths</SelectItem>
-                        {uniquePanchayaths.map((p: any) => <SelectItem key={p} value={p}>{p}</SelectItem>)}
-                      </SelectContent>
-                    </Select>
-                    <Select value={filterWard} onValueChange={setFilterWard}>
-                      <SelectTrigger className="w-32 h-8"><SelectValue placeholder="Ward" /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">All Wards</SelectItem>
-                        {uniqueWards.map((w: any) => <SelectItem key={w} value={String(w)}>Ward {w}</SelectItem>)}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Name</TableHead>
-                      <TableHead>Mobile</TableHead>
-                      <TableHead>Panchayath</TableHead>
-                      <TableHead>Ward</TableHead>
-                      <TableHead>Delivered</TableHead>
-                      <TableHead>Read</TableHead>
-                      <TableHead>Clicked</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filteredUsers.map((u: any) => (
-                      <TableRow key={u.user_id}>
-                        <TableCell>{u.full_name || "-"}</TableCell>
-                        <TableCell className="text-xs">{u.mobile_number || "-"}</TableCell>
-                        <TableCell>{u.local_body_name || "-"}</TableCell>
-                        <TableCell>{u.ward_number ?? "-"}</TableCell>
-                        <TableCell className="text-xs">{u.delivered_at ? new Date(u.delivered_at).toLocaleString() : "-"}</TableCell>
-                        <TableCell className="text-xs">{u.read_at ? new Date(u.read_at).toLocaleString() : "-"}</TableCell>
-                        <TableCell className="text-xs">{u.clicked_at ? new Date(u.clicked_at).toLocaleString() : "-"}</TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
+                <AccordionItem value="per-user">
+                  <AccordionTrigger className="font-semibold">Per-User Drilldown</AccordionTrigger>
+                  <AccordionContent>
+                    <div className="flex items-center justify-end mb-2 gap-2 flex-wrap">
+                      <div className="flex gap-2">
+                        <Select value={filterPanchayath} onValueChange={setFilterPanchayath}>
+                          <SelectTrigger className="w-40 h-8"><SelectValue placeholder="Panchayath" /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="all">All Panchayaths</SelectItem>
+                            {uniquePanchayaths.map((p: any) => <SelectItem key={p} value={p}>{p}</SelectItem>)}
+                          </SelectContent>
+                        </Select>
+                        <Select value={filterWard} onValueChange={setFilterWard}>
+                          <SelectTrigger className="w-32 h-8"><SelectValue placeholder="Ward" /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="all">All Wards</SelectItem>
+                            {uniqueWards.map((w: any) => <SelectItem key={w} value={String(w)}>Ward {w}</SelectItem>)}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Name</TableHead>
+                          <TableHead>Mobile</TableHead>
+                          <TableHead>Panchayath</TableHead>
+                          <TableHead>Ward</TableHead>
+                          <TableHead>Delivered</TableHead>
+                          <TableHead>Read</TableHead>
+                          <TableHead>Clicked</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {filteredUsers.map((u: any) => (
+                          <TableRow key={u.user_id}>
+                            <TableCell>{u.full_name || "-"}</TableCell>
+                            <TableCell className="text-xs">{u.mobile_number || "-"}</TableCell>
+                            <TableCell>{u.local_body_name || "-"}</TableCell>
+                            <TableCell>{u.ward_number ?? "-"}</TableCell>
+                            <TableCell className="text-xs">{u.delivered_at ? new Date(u.delivered_at).toLocaleString() : "-"}</TableCell>
+                            <TableCell className="text-xs">{u.read_at ? new Date(u.read_at).toLocaleString() : "-"}</TableCell>
+                            <TableCell className="text-xs">{u.clicked_at ? new Date(u.clicked_at).toLocaleString() : "-"}</TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </AccordionContent>
+                </AccordionItem>
+              </Accordion>
             </div>
           ) : null}
         </DialogContent>
