@@ -6,6 +6,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import DownloadAppDialog from "@/components/DownloadAppDialog";
 import InviteFriendDialog from "@/components/InviteFriendDialog";
+import NotificationBell from "@/components/NotificationBell";
 
 interface SearchResult {
   id: string;
