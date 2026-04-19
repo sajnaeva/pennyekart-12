@@ -12,7 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { toast } from "@/hooks/use-toast";
-import { Plus, Edit, Trash2, BarChart3, Loader2 } from "lucide-react";
+import { Plus, Edit, Trash2, BarChart3, Loader2, Download } from "lucide-react";
 import ImageUpload from "@/components/admin/ImageUpload";
 import { useAuth } from "@/hooks/useAuth";
 import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from "@/components/ui/accordion";
@@ -147,8 +147,74 @@ const NotificationsPage = () => {
     return true;
   });
 
-  const uniquePanchayaths = Array.from(new Set((analytics?.users ?? []).map((u: any) => u.local_body_name).filter(Boolean)));
+  const uniquePanchayaths = Array.from(new Set((analytics?.users ?? []).map((u: any) => u.local_body_name).filter(Boolean))).sort() as string[];
   const uniqueWards = Array.from(new Set(filteredUsers.map((u: any) => u.ward_number).filter((w: any) => w != null))).sort((a: any, b: any) => a - b);
+
+  // Group rows by same panchayath+ward, then apply filters and sort by panchayath then ward
+  const filteredGroups = (analytics?.byPanchayath ?? [])
+    .filter((g: any) => {
+      if (filterPanchayath !== "all" && g.local_body_name !== filterPanchayath) return false;
+      if (filterWard !== "all" && String(g.ward_number) !== filterWard) return false;
+      return true;
+    })
+    .sort((a: any, b: any) => {
+      const p = String(a.local_body_name || "").localeCompare(String(b.local_body_name || ""));
+      if (p !== 0) return p;
+      return (Number(a.ward_number) || 0) - (Number(b.ward_number) || 0);
+    });
+
+  // Subtotals per panchayath for visual grouping
+  const groupedByPanchayath = filteredGroups.reduce((acc: Record<string, any[]>, g: any) => {
+    const key = g.local_body_name || "Unknown";
+    (acc[key] = acc[key] || []).push(g);
+    return acc;
+  }, {});
+
+  const downloadCSV = (filename: string, rows: (string | number | null | undefined)[][]) => {
+    const escape = (v: any) => {
+      const s = v == null ? "" : String(v);
+      return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+    };
+    const csv = rows.map((r) => r.map(escape).join(",")).join("\n");
+    const blob = new Blob([`\uFEFF${csv}`], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const exportGroupsCSV = () => {
+    const safeTitle = (analyticsFor?.title || "notification").replace(/[^a-z0-9]+/gi, "_");
+    const rows: any[][] = [["Panchayath", "Ward", "Delivered", "Read", "Clicked"]];
+    Object.entries(groupedByPanchayath).forEach(([panchayath, groups]) => {
+      let pd = 0, pr = 0, pc = 0;
+      groups.forEach((g: any) => {
+        rows.push([g.local_body_name, g.ward_number ?? "", g.delivered, g.read, g.clicked]);
+        pd += g.delivered; pr += g.read; pc += g.clicked;
+      });
+      rows.push([`${panchayath} — Subtotal`, "", pd, pr, pc]);
+    });
+    downloadCSV(`${safeTitle}_by_panchayath_ward.csv`, rows);
+  };
+
+  const exportUsersCSV = () => {
+    const safeTitle = (analyticsFor?.title || "notification").replace(/[^a-z0-9]+/gi, "_");
+    const rows: any[][] = [["Name", "Mobile", "Panchayath", "Ward", "Delivered", "Read", "Clicked"]];
+    filteredUsers.forEach((u: any) => {
+      rows.push([
+        u.full_name || "",
+        u.mobile_number || "",
+        u.local_body_name || "",
+        u.ward_number ?? "",
+        u.delivered_at || "",
+        u.read_at || "",
+        u.clicked_at || "",
+      ]);
+    });
+    downloadCSV(`${safeTitle}_users.csv`, rows);
+  };
 
   return (
     <AdminLayout>
@@ -348,6 +414,25 @@ const NotificationsPage = () => {
                 <AccordionItem value="by-panchayath">
                   <AccordionTrigger className="font-semibold">By Panchayath & Ward</AccordionTrigger>
                   <AccordionContent>
+                    <div className="flex items-center justify-end mb-2 gap-2 flex-wrap">
+                      <Select value={filterPanchayath} onValueChange={setFilterPanchayath}>
+                        <SelectTrigger className="w-40 h-8"><SelectValue placeholder="Panchayath" /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">All Panchayaths</SelectItem>
+                          {uniquePanchayaths.map((p: any) => <SelectItem key={p} value={p}>{p}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                      <Select value={filterWard} onValueChange={setFilterWard}>
+                        <SelectTrigger className="w-32 h-8"><SelectValue placeholder="Ward" /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">All Wards</SelectItem>
+                          {uniqueWards.map((w: any) => <SelectItem key={w} value={String(w)}>Ward {w}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                      <Button size="sm" variant="outline" onClick={exportGroupsCSV} className="h-8">
+                        <Download className="h-3.5 w-3.5 mr-1" /> Export CSV
+                      </Button>
+                    </div>
                     <Table>
                       <TableHeader>
                         <TableRow>
@@ -359,15 +444,38 @@ const NotificationsPage = () => {
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {(analytics.byPanchayath ?? []).map((g: any, i: number) => (
-                          <TableRow key={i}>
-                            <TableCell>{g.local_body_name}</TableCell>
-                            <TableCell>{g.ward_number ?? "-"}</TableCell>
-                            <TableCell className="text-right">{g.delivered}</TableCell>
-                            <TableCell className="text-right">{g.read}</TableCell>
-                            <TableCell className="text-right">{g.clicked}</TableCell>
-                          </TableRow>
-                        ))}
+                        {Object.entries(groupedByPanchayath).length === 0 ? (
+                          <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground py-4">No data</TableCell></TableRow>
+                        ) : (
+                          Object.entries(groupedByPanchayath).map(([panchayath, groups]) => {
+                            const subtotal = groups.reduce(
+                              (a: any, g: any) => ({ d: a.d + g.delivered, r: a.r + g.read, c: a.c + g.clicked }),
+                              { d: 0, r: 0, c: 0 }
+                            );
+                            return (
+                              <>
+                                {groups
+                                  .sort((a: any, b: any) => (Number(a.ward_number) || 0) - (Number(b.ward_number) || 0))
+                                  .map((g: any, i: number) => (
+                                    <TableRow key={`${panchayath}-${i}`}>
+                                      <TableCell>{i === 0 ? <span className="font-medium">{g.local_body_name}</span> : ""}</TableCell>
+                                      <TableCell>{g.ward_number ?? "-"}</TableCell>
+                                      <TableCell className="text-right">{g.delivered}</TableCell>
+                                      <TableCell className="text-right">{g.read}</TableCell>
+                                      <TableCell className="text-right">{g.clicked}</TableCell>
+                                    </TableRow>
+                                  ))}
+                                <TableRow key={`${panchayath}-sub`} className="bg-muted/40">
+                                  <TableCell className="font-semibold text-xs">{panchayath} — Subtotal</TableCell>
+                                  <TableCell />
+                                  <TableCell className="text-right font-semibold">{subtotal.d}</TableCell>
+                                  <TableCell className="text-right font-semibold">{subtotal.r}</TableCell>
+                                  <TableCell className="text-right font-semibold">{subtotal.c}</TableCell>
+                                </TableRow>
+                              </>
+                            );
+                          })
+                        )}
                       </TableBody>
                     </Table>
                   </AccordionContent>
