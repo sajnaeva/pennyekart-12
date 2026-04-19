@@ -216,7 +216,25 @@ const NotificationsPage = () => {
     downloadCSV(`${safeTitle}_users.csv`, rows);
   };
 
-  return (
+  const shareToWhatsApp = (panchayath: string, groups: any[]) => {
+    const sub = groups.reduce(
+      (a, g: any) => ({ d: a.d + g.delivered, r: a.r + g.read, c: a.c + g.clicked }),
+      { d: 0, r: 0, c: 0 }
+    );
+    const lines = [
+      `*${analyticsFor?.title || "Notification"}*`,
+      `📍 *${panchayath}*`,
+      ``,
+      `Delivered: ${sub.d}  |  Read: ${sub.r}  |  Clicked: ${sub.c}`,
+      ``,
+      `*Ward breakdown:*`,
+      ...[...groups]
+        .sort((a: any, b: any) => (Number(a.ward_number) || 0) - (Number(b.ward_number) || 0))
+        .map((g: any) => `• Ward ${g.ward_number ?? "-"}: ${g.delivered} delivered, ${g.read} read, ${g.clicked} clicked`),
+    ];
+    const text = encodeURIComponent(lines.join("\n"));
+    window.open(`https://wa.me/?text=${text}`, "_blank");
+  };
     <AdminLayout>
       <div className="space-y-6">
         <div className="flex items-center justify-between">
