@@ -416,7 +416,7 @@ const NotificationsPage = () => {
 
       {/* Analytics dialog */}
       <Dialog open={!!analyticsFor} onOpenChange={(o) => !o && setAnalyticsFor(null)}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-4xl w-[95vw] sm:w-full max-h-[90vh] overflow-y-auto p-4 sm:p-6">
           <DialogHeader>
             <DialogTitle>Analytics: {analyticsFor?.title}</DialogTitle>
           </DialogHeader>
@@ -424,130 +424,158 @@ const NotificationsPage = () => {
             <div className="flex justify-center py-8"><Loader2 className="h-6 w-6 animate-spin" /></div>
           ) : analytics ? (
             <div className="space-y-4">
-              <div className="grid grid-cols-3 gap-3">
-                <Card><CardHeader className="pb-2"><CardTitle className="text-sm">Delivered</CardTitle></CardHeader><CardContent><p className="text-2xl font-bold">{analytics.totals.delivered}</p></CardContent></Card>
-                <Card><CardHeader className="pb-2"><CardTitle className="text-sm">Read</CardTitle></CardHeader><CardContent><p className="text-2xl font-bold text-primary">{analytics.totals.read}</p></CardContent></Card>
-                <Card><CardHeader className="pb-2"><CardTitle className="text-sm">Clicked</CardTitle></CardHeader><CardContent><p className="text-2xl font-bold text-emerald-600">{analytics.totals.clicked}</p></CardContent></Card>
+              <div className="grid grid-cols-3 gap-2 sm:gap-3">
+                <Card><CardHeader className="pb-2 px-3 sm:px-6"><CardTitle className="text-xs sm:text-sm">Delivered</CardTitle></CardHeader><CardContent className="px-3 sm:px-6"><p className="text-xl sm:text-2xl font-bold">{analytics.totals.delivered}</p></CardContent></Card>
+                <Card><CardHeader className="pb-2 px-3 sm:px-6"><CardTitle className="text-xs sm:text-sm">Read</CardTitle></CardHeader><CardContent className="px-3 sm:px-6"><p className="text-xl sm:text-2xl font-bold text-primary">{analytics.totals.read}</p></CardContent></Card>
+                <Card><CardHeader className="pb-2 px-3 sm:px-6"><CardTitle className="text-xs sm:text-sm">Clicked</CardTitle></CardHeader><CardContent className="px-3 sm:px-6"><p className="text-xl sm:text-2xl font-bold text-emerald-600">{analytics.totals.clicked}</p></CardContent></Card>
+              </div>
+
+              <div className="flex items-center gap-2 flex-wrap">
+                <Select value={filterPanchayath} onValueChange={setFilterPanchayath}>
+                  <SelectTrigger className="flex-1 min-w-[140px] h-9"><SelectValue placeholder="Panchayath" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Panchayaths</SelectItem>
+                    {uniquePanchayaths.map((p: any) => <SelectItem key={p} value={p}>{p}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+                <Select value={filterWard} onValueChange={setFilterWard}>
+                  <SelectTrigger className="w-28 h-9"><SelectValue placeholder="Ward" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Wards</SelectItem>
+                    {uniqueWards.map((w: any) => <SelectItem key={w} value={String(w)}>Ward {w}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+                <Button size="sm" variant="outline" onClick={exportGroupsCSV} className="h-9">
+                  <Download className="h-4 w-4 sm:mr-1" /> <span className="hidden sm:inline">Export</span>
+                </Button>
               </div>
 
               <Accordion type="multiple" className="w-full">
                 <AccordionItem value="by-panchayath">
-                  <AccordionTrigger className="font-semibold">By Panchayath & Ward</AccordionTrigger>
+                  <AccordionTrigger className="font-semibold">By Panchayath</AccordionTrigger>
                   <AccordionContent>
-                    <div className="flex items-center justify-end mb-2 gap-2 flex-wrap">
-                      <Select value={filterPanchayath} onValueChange={setFilterPanchayath}>
-                        <SelectTrigger className="w-40 h-8"><SelectValue placeholder="Panchayath" /></SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="all">All Panchayaths</SelectItem>
-                          {uniquePanchayaths.map((p: any) => <SelectItem key={p} value={p}>{p}</SelectItem>)}
-                        </SelectContent>
-                      </Select>
-                      <Select value={filterWard} onValueChange={setFilterWard}>
-                        <SelectTrigger className="w-32 h-8"><SelectValue placeholder="Ward" /></SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="all">All Wards</SelectItem>
-                          {uniqueWards.map((w: any) => <SelectItem key={w} value={String(w)}>Ward {w}</SelectItem>)}
-                        </SelectContent>
-                      </Select>
-                      <Button size="sm" variant="outline" onClick={exportGroupsCSV} className="h-8">
-                        <Download className="h-3.5 w-3.5 mr-1" /> Export CSV
-                      </Button>
-                    </div>
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Panchayath</TableHead>
-                          <TableHead>Ward</TableHead>
-                          <TableHead className="text-right">Delivered</TableHead>
-                          <TableHead className="text-right">Read</TableHead>
-                          <TableHead className="text-right">Clicked</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {Object.entries(groupedByPanchayath).length === 0 ? (
-                          <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground py-4">No data</TableCell></TableRow>
-                        ) : (
-                          (Object.entries(groupedByPanchayath) as [string, any[]][]).map(([panchayath, groups]) => {
-                            const subtotal = groups.reduce(
-                              (a: { d: number; r: number; c: number }, g: any) => ({ d: a.d + g.delivered, r: a.r + g.read, c: a.c + g.clicked }),
-                              { d: 0, r: 0, c: 0 }
-                            );
-                            return (
-                              <>
-                                {[...groups]
-                                  .sort((a: any, b: any) => (Number(a.ward_number) || 0) - (Number(b.ward_number) || 0))
-                                  .map((g: any, i: number) => (
-                                    <TableRow key={`${panchayath}-${i}`}>
-                                      <TableCell>{i === 0 ? <span className="font-medium">{g.local_body_name}</span> : ""}</TableCell>
-                                      <TableCell>{g.ward_number ?? "-"}</TableCell>
-                                      <TableCell className="text-right">{g.delivered}</TableCell>
-                                      <TableCell className="text-right">{g.read}</TableCell>
-                                      <TableCell className="text-right">{g.clicked}</TableCell>
-                                    </TableRow>
-                                  ))}
-                                <TableRow key={`${panchayath}-sub`} className="bg-muted/40">
-                                  <TableCell className="font-semibold text-xs">{panchayath} — Subtotal</TableCell>
-                                  <TableCell />
-                                  <TableCell className="text-right font-semibold">{subtotal.d}</TableCell>
-                                  <TableCell className="text-right font-semibold">{subtotal.r}</TableCell>
-                                  <TableCell className="text-right font-semibold">{subtotal.c}</TableCell>
-                                </TableRow>
-                              </>
-                            );
-                          })
-                        )}
-                      </TableBody>
-                    </Table>
+                    {Object.entries(groupedByPanchayath).length === 0 ? (
+                      <p className="text-center text-muted-foreground py-4 text-sm">No data</p>
+                    ) : (
+                      <Accordion type="multiple" className="w-full space-y-2">
+                        {(Object.entries(groupedByPanchayath) as [string, any[]][]).map(([panchayath, groups]) => {
+                          const subtotal = groups.reduce(
+                            (a: { d: number; r: number; c: number }, g: any) => ({ d: a.d + g.delivered, r: a.r + g.read, c: a.c + g.clicked }),
+                            { d: 0, r: 0, c: 0 }
+                          );
+                          return (
+                            <AccordionItem key={panchayath} value={panchayath} className="border rounded-md px-3">
+                              <AccordionTrigger className="hover:no-underline py-3">
+                                <div className="flex-1 flex items-center justify-between gap-2 pr-2 min-w-0">
+                                  <span className="font-medium text-sm sm:text-base truncate text-left">{panchayath}</span>
+                                  <div className="flex items-center gap-1.5 text-xs shrink-0">
+                                    <Badge variant="outline" className="font-normal">D {subtotal.d}</Badge>
+                                    <Badge variant="outline" className="font-normal text-primary border-primary/40">R {subtotal.r}</Badge>
+                                    <Badge variant="outline" className="font-normal text-emerald-600 border-emerald-600/40">C {subtotal.c}</Badge>
+                                  </div>
+                                </div>
+                              </AccordionTrigger>
+                              <AccordionContent>
+                                <div className="flex justify-end mb-2">
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    className="h-8 text-emerald-600 border-emerald-600/40 hover:bg-emerald-50 hover:text-emerald-700"
+                                    onClick={() => shareToWhatsApp(panchayath, groups)}
+                                  >
+                                    <MessageCircle className="h-3.5 w-3.5 mr-1" /> Share to WhatsApp
+                                  </Button>
+                                </div>
+                                <div className="overflow-x-auto">
+                                  <Table>
+                                    <TableHeader>
+                                      <TableRow>
+                                        <TableHead className="w-20">Ward</TableHead>
+                                        <TableHead className="text-right">Delivered</TableHead>
+                                        <TableHead className="text-right">Read</TableHead>
+                                        <TableHead className="text-right">Clicked</TableHead>
+                                      </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                      {[...groups]
+                                        .sort((a: any, b: any) => (Number(a.ward_number) || 0) - (Number(b.ward_number) || 0))
+                                        .map((g: any, i: number) => (
+                                          <TableRow key={`${panchayath}-${i}`}>
+                                            <TableCell className="font-medium">Ward {g.ward_number ?? "-"}</TableCell>
+                                            <TableCell className="text-right">{g.delivered}</TableCell>
+                                            <TableCell className="text-right">{g.read}</TableCell>
+                                            <TableCell className="text-right">{g.clicked}</TableCell>
+                                          </TableRow>
+                                        ))}
+                                      <TableRow className="bg-muted/40">
+                                        <TableCell className="font-semibold text-xs">Subtotal</TableCell>
+                                        <TableCell className="text-right font-semibold">{subtotal.d}</TableCell>
+                                        <TableCell className="text-right font-semibold">{subtotal.r}</TableCell>
+                                        <TableCell className="text-right font-semibold">{subtotal.c}</TableCell>
+                                      </TableRow>
+                                    </TableBody>
+                                  </Table>
+                                </div>
+                              </AccordionContent>
+                            </AccordionItem>
+                          );
+                        })}
+                      </Accordion>
+                    )}
                   </AccordionContent>
                 </AccordionItem>
 
                 <AccordionItem value="per-user">
                   <AccordionTrigger className="font-semibold">Per-User Drilldown</AccordionTrigger>
                   <AccordionContent>
-                    <div className="flex items-center justify-end mb-2 gap-2 flex-wrap">
-                      <div className="flex gap-2">
-                        <Select value={filterPanchayath} onValueChange={setFilterPanchayath}>
-                          <SelectTrigger className="w-40 h-8"><SelectValue placeholder="Panchayath" /></SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="all">All Panchayaths</SelectItem>
-                            {uniquePanchayaths.map((p: any) => <SelectItem key={p} value={p}>{p}</SelectItem>)}
-                          </SelectContent>
-                        </Select>
-                        <Select value={filterWard} onValueChange={setFilterWard}>
-                          <SelectTrigger className="w-32 h-8"><SelectValue placeholder="Ward" /></SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="all">All Wards</SelectItem>
-                            {uniqueWards.map((w: any) => <SelectItem key={w} value={String(w)}>Ward {w}</SelectItem>)}
-                          </SelectContent>
-                        </Select>
-                      </div>
+                    {/* Mobile: card list */}
+                    <div className="sm:hidden space-y-2">
+                      {filteredUsers.length === 0 ? (
+                        <p className="text-center text-muted-foreground py-4 text-sm">No users</p>
+                      ) : filteredUsers.map((u: any) => (
+                        <div key={u.user_id} className="border rounded-md p-3 text-sm space-y-1">
+                          <div className="flex items-center justify-between gap-2">
+                            <p className="font-medium truncate">{u.full_name || "-"}</p>
+                            <span className="text-xs text-muted-foreground shrink-0">{u.mobile_number || "-"}</span>
+                          </div>
+                          <p className="text-xs text-muted-foreground">{u.local_body_name || "-"} · Ward {u.ward_number ?? "-"}</p>
+                          <div className="grid grid-cols-3 gap-1 text-[11px] pt-1">
+                            <div><span className="text-muted-foreground">D:</span> {u.delivered_at ? new Date(u.delivered_at).toLocaleDateString() : "-"}</div>
+                            <div><span className="text-muted-foreground">R:</span> {u.read_at ? new Date(u.read_at).toLocaleDateString() : "-"}</div>
+                            <div><span className="text-muted-foreground">C:</span> {u.clicked_at ? new Date(u.clicked_at).toLocaleDateString() : "-"}</div>
+                          </div>
+                        </div>
+                      ))}
                     </div>
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Name</TableHead>
-                          <TableHead>Mobile</TableHead>
-                          <TableHead>Panchayath</TableHead>
-                          <TableHead>Ward</TableHead>
-                          <TableHead>Delivered</TableHead>
-                          <TableHead>Read</TableHead>
-                          <TableHead>Clicked</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {filteredUsers.map((u: any) => (
-                          <TableRow key={u.user_id}>
-                            <TableCell>{u.full_name || "-"}</TableCell>
-                            <TableCell className="text-xs">{u.mobile_number || "-"}</TableCell>
-                            <TableCell>{u.local_body_name || "-"}</TableCell>
-                            <TableCell>{u.ward_number ?? "-"}</TableCell>
-                            <TableCell className="text-xs">{u.delivered_at ? new Date(u.delivered_at).toLocaleString() : "-"}</TableCell>
-                            <TableCell className="text-xs">{u.read_at ? new Date(u.read_at).toLocaleString() : "-"}</TableCell>
-                            <TableCell className="text-xs">{u.clicked_at ? new Date(u.clicked_at).toLocaleString() : "-"}</TableCell>
+                    {/* Desktop: table */}
+                    <div className="hidden sm:block overflow-x-auto">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Name</TableHead>
+                            <TableHead>Mobile</TableHead>
+                            <TableHead>Panchayath</TableHead>
+                            <TableHead>Ward</TableHead>
+                            <TableHead>Delivered</TableHead>
+                            <TableHead>Read</TableHead>
+                            <TableHead>Clicked</TableHead>
                           </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
+                        </TableHeader>
+                        <TableBody>
+                          {filteredUsers.map((u: any) => (
+                            <TableRow key={u.user_id}>
+                              <TableCell>{u.full_name || "-"}</TableCell>
+                              <TableCell className="text-xs">{u.mobile_number || "-"}</TableCell>
+                              <TableCell>{u.local_body_name || "-"}</TableCell>
+                              <TableCell>{u.ward_number ?? "-"}</TableCell>
+                              <TableCell className="text-xs">{u.delivered_at ? new Date(u.delivered_at).toLocaleString() : "-"}</TableCell>
+                              <TableCell className="text-xs">{u.read_at ? new Date(u.read_at).toLocaleString() : "-"}</TableCell>
+                              <TableCell className="text-xs">{u.clicked_at ? new Date(u.clicked_at).toLocaleString() : "-"}</TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
                   </AccordionContent>
                 </AccordionItem>
               </Accordion>
