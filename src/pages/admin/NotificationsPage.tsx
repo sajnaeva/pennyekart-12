@@ -224,11 +224,12 @@ const NotificationsPage = () => {
   const exportUsersCSV = (users?: any[], suffix = "users") => {
     const safeTitle = (analyticsFor?.title || "notification").replace(/[^a-z0-9]+/gi, "_");
     const list = users ?? filteredUsers;
-    const rows: any[][] = [["Name", "Mobile", "Panchayath", "Ward", "Delivered", "Read", "Clicked"]];
+    const rows: any[][] = [["Name", "Mobile", "Role", "Panchayath", "Ward", "Delivered", "Read", "Clicked"]];
     list.forEach((u: any) => {
       rows.push([
         u.full_name || "",
         u.mobile_number || "",
+        u.role_name || "",
         u.local_body_name || "",
         u.ward_number ?? "",
         u.delivered_at || "",
