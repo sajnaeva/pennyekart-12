@@ -375,6 +375,11 @@ const Profile = () => {
                         {profile.user_type.replace("_", " ")}
                       </Badge>
                     )}
+                    {linkedUserType && (
+                      <Badge variant="outline" className="text-[10px] uppercase tracking-wide">
+                        {linkedUserType.replace("_", " ")}
+                      </Badge>
+                    )}
                   </div>
                   {profile?.customer_id && (
                     <p className="text-xs font-mono text-primary font-semibold">{profile.customer_id}</p>
