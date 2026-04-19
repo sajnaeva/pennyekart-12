@@ -60,6 +60,7 @@ const Profile = () => {
   const [saving, setSaving] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [activeSection, setActiveSection] = useState(initialTab);
+  const [roleName, setRoleName] = useState<string | null>(null);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -75,6 +76,26 @@ const Profile = () => {
       setMobile(profile.mobile_number || "");
     }
   }, [profile]);
+
+  useEffect(() => {
+    const fetchRole = async () => {
+      if (!profile?.role_id) {
+        setRoleName(null);
+        return;
+      }
+      const { data } = await supabase
+        .from("roles")
+        .select("name")
+        .eq("id", profile.role_id)
+        .maybeSingle();
+      if (data?.name && data.name.toLowerCase() !== "customer") {
+        setRoleName(data.name);
+      } else {
+        setRoleName(null);
+      }
+    };
+    fetchRole();
+  }, [profile?.role_id]);
 
   const fetchOrders = async () => {
     const { data, error } = await supabase
