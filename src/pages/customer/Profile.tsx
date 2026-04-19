@@ -413,6 +413,9 @@ const Profile = () => {
           </Card>
         )}
 
+        {/* Today's Work — only renders for users matched as a Pennyekart agent in e-Life */}
+        {activeSection === "profile" && <TodaysWorkSection />}
+
         {/* Orders Section */}
         {activeSection === "orders" && (
           <Tabs defaultValue="active" className="w-full">
