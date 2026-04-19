@@ -164,11 +164,11 @@ const NotificationsPage = () => {
     });
 
   // Subtotals per panchayath for visual grouping
-  const groupedByPanchayath = filteredGroups.reduce((acc: Record<string, any[]>, g: any) => {
+  const groupedByPanchayath: Record<string, any[]> = filteredGroups.reduce((acc: Record<string, any[]>, g: any) => {
     const key = g.local_body_name || "Unknown";
     (acc[key] = acc[key] || []).push(g);
     return acc;
-  }, {});
+  }, {} as Record<string, any[]>);
 
   const downloadCSV = (filename: string, rows: (string | number | null | undefined)[][]) => {
     const escape = (v: any) => {
@@ -190,7 +190,7 @@ const NotificationsPage = () => {
     const rows: any[][] = [["Panchayath", "Ward", "Delivered", "Read", "Clicked"]];
     Object.entries(groupedByPanchayath).forEach(([panchayath, groups]) => {
       let pd = 0, pr = 0, pc = 0;
-      groups.forEach((g: any) => {
+      (groups as any[]).forEach((g: any) => {
         rows.push([g.local_body_name, g.ward_number ?? "", g.delivered, g.read, g.clicked]);
         pd += g.delivered; pr += g.read; pc += g.clicked;
       });
