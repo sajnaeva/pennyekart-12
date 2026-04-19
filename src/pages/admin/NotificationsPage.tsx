@@ -639,7 +639,14 @@ const NotificationsPage = () => {
                                             <p className="font-medium truncate">{u.full_name || "-"}</p>
                                             <span className="text-xs text-muted-foreground shrink-0">{u.mobile_number || "-"}</span>
                                           </div>
-                                          <p className="text-xs text-muted-foreground">Ward {u.ward_number ?? "-"}</p>
+                                          <div className="flex items-center gap-1.5 flex-wrap">
+                                            <p className="text-xs text-muted-foreground">Ward {u.ward_number ?? "-"}</p>
+                                            {u.role_name ? (
+                                              <Badge variant="secondary" className="text-[10px] h-5">{u.role_name}</Badge>
+                                            ) : (
+                                              <Badge variant="outline" className="text-[10px] h-5 text-muted-foreground">No role</Badge>
+                                            )}
+                                          </div>
                                           <div className="grid grid-cols-3 gap-1 text-[11px] pt-1">
                                             <div><span className="text-muted-foreground">D:</span> {u.delivered_at ? new Date(u.delivered_at).toLocaleDateString() : "-"}</div>
                                             <div><span className="text-muted-foreground">R:</span> {u.read_at ? new Date(u.read_at).toLocaleDateString() : "-"}</div>
