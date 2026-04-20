@@ -192,7 +192,17 @@ export const TodaysWorkSection = () => {
                 mode="single"
                 selected={date}
                 onSelect={(d) => d && setDate(d)}
+                month={monthCursor}
+                onMonthChange={setMonthCursor}
                 disabled={(d) => d > new Date()}
+                modifiers={{
+                  present: attendance.presentDays,
+                  absent: attendance.absentDays,
+                }}
+                modifiersClassNames={{
+                  present: "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 font-semibold",
+                  absent: "bg-destructive/10 text-destructive/80",
+                }}
                 initialFocus
                 className={cn("p-3 pointer-events-auto")}
               />
