@@ -1,69 +1,26 @@
 
-## What’s actually broken
+The "Add entry" button fails with "insert failed" when adding a second/multiple entry for the same date. This is happening in the external e-Life Society database, not our local DB.
 
-The popup is not mainly failing because of the timer math. The bigger bug is state flow:
+**Root cause analysis:**
+Looking at `supabase/functions/agent-work-logs/index.ts` POST handler, it inserts into the e-Life `agent_work_logs` table with `(agent_id, work_date, work_details)`. The first insert works, the second fails — this strongly suggests the e-Life table has a **unique constraint on `(agent_id, work_date)`**, allowing only one log per agent per day.
 
-- `NotificationPopup` renders from `firstUnread`
-- when the user taps `View Message`, `handleView()` immediately calls `markRead(firstUnread.id)`
-- that updates notifications state in `useNotifications`
-- `firstUnread` then changes to the next unread notification or becomes `null`
-- because the popup content still depends on `firstUnread`, the currently opened message can disappear instantly
+We cannot modify the external e-Life schema. So the fix must happen in the edge function: when an entry already exists for that `(agent_id, work_date)`, append the new text to the existing record instead of inserting a duplicate row.
 
-So the popup looks like it is “quick disappearing,” even when auto-dismiss is configured correctly.
+**Plan:**
 
-## Fix plan
+1. **Update edge function `agent-work-logs` POST handler** to:
+   - First check if a log row already exists for `(agent_id, work_date)`.
+   - If yes → PATCH the existing row, appending the new entry to `work_details` with a timestamp separator (e.g. `\n\n[14:32] new entry text`).
+   - If no → INSERT new row as before.
+   - Return the resulting row so the UI updates correctly.
 
-### 1. Stabilize the popup around a selected notification
-Update `src/components/NotificationPopup.tsx` so it does not render directly from the live `firstUnread` value after opening.
+2. **Update edge function logging** to surface the actual e-Life PostgREST error body in the response (it already does via `details`), and add a `console.error` for debugging.
 
-Planned approach:
-- keep a local `activeNotification` state
-- when a new unread notification should be shown, copy it into `activeNotification`
-- render the dialog from `activeNotification`, not `firstUnread`
-- only clear `activeNotification` when the popup fully closes or when intentionally moving to the next message
+3. **Verify in `TodaysWorkSection.tsx`** — no UI changes needed; it already re-renders when the returned log comes back. The "multiple entries per day" will now show as a single growing log entry with timestamped sub-entries (which matches how a daily work log naturally reads).
 
-This prevents the message from vanishing as soon as it gets marked as read.
+**Alternative considered:** Strict multi-row inserts would require schema changes on the external e-Life DB (drop unique constraint), which is outside our control. The append-strategy preserves all entries and works within the existing constraint.
 
-### 2. Keep auto-dismiss tied to the opened message only
-Retain the current intended behavior:
-- initial “You have a new message” prompt should not auto-close
-- timer starts only after `View Message`
-- timer should use `activeNotification.auto_dismiss_seconds`, not `firstUnread`
+**Files to change:**
+- `supabase/functions/agent-work-logs/index.ts` — POST handler logic (upsert/append)
 
-That ensures the configured seconds work predictably.
-
-### 3. Make close behavior consistent
-While updating the popup flow:
-- keep `Later` as a dismiss-only action
-- keep `Close` closing the current popup cleanly
-- keep link clicks marking `clicked_at` and navigating correctly
-- avoid reopening the same notification during the same session because of the existing `sessionStorage` tracking
-
-### 4. Verify admin setting alignment
-`src/pages/admin/NotificationsPage.tsx` already saves:
-- `auto_dismiss_seconds: Math.max(0, Number(editing.auto_dismiss_seconds) || 0)`
-
-So no admin-page UI redesign is needed. I’ll just ensure the popup actually honors that saved value after the state fix.
-
-## Files to update
-- `src/components/NotificationPopup.tsx`
-
-## Expected result after implementation
-- popup stays visible after clicking `View Message`
-- message content remains stable even after it is marked read
-- auto-dismiss works only after full message opens
-- `0` continues to mean “do not auto-dismiss”
-
-## Technical note
-Current root cause is a reactive dependency bug, not just a timeout bug:
-
-```text
-View Message
--> markRead()
--> notifications state updates
--> firstUnread changes
--> popup loses its source data
--> dialog appears to disappear immediately
-```
-
-Using a local snapshot (`activeNotification`) will break that chain.
+**No DB migration, no UI changes, no new secrets needed.**
